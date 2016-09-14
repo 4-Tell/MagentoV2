@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<!--
+/**
+* 4-Tell Product Recommendations
+* Copyright © 2015 4-Tell, Inc. All rights reserved.
+*/
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <preference for="Magento\Catalog\Block\Product\ProductList\Upsell"
+                type="FourTell\Recommend\Block\Product\ProductList\Upsell"/>
+    <preference for="Magento\Catalog\Block\Product\ProductList\Related"
+                type="FourTell\Recommend\Block\Product\ProductList\Related"/>
+    <preference for="Magento\Checkout\Block\Cart\Crosssell" type="FourTell\Recommend\Block\Cart\Crosssell"/>
+</config>

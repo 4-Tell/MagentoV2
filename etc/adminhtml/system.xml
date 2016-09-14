@@ -1,0 +1,206 @@
+<?xml version="1.0"?>
+<!--
+/**
+* 4-Tell Product Recommendations
+* Copyright © 2015 4-Tell, Inc. All rights reserved.
+*/
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
+    <system>
+        <section id="recommend" translate="label" type="text" sortOrder="400" showInDefault="1" showInWebsite="1"
+                 showInStore="1">
+            <label>4-Tell Boost Service</label>
+            <tab>service</tab>
+            <resource>Magento_Config::config</resource>
+            <group id="general_settings" translate="label" type="text" sortOrder="1" showInDefault="1" showInWebsite="1"
+                   showInStore="1">
+                <label>General Settings</label>
+                <field id="enabled" translate="label tooltip" type="select" sortOrder="1" showInDefault="1"
+                       showInWebsite="1" showInStore="0">
+                    <label>Enabled</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <!-- <backend_model>Magento\Config\Model\Config\Backend\Encrypted</backend_model> -->
+                    <tooltip>Select Yes to enable the 4-Tell extension or No to disable it.</tooltip>
+                </field>
+                <field id="extension_version" translate="label tooltip" type="label" sortOrder="5" showInDefault="1"
+                       showInWebsite="1" showInStore="1">
+                    <label>Extension Version</label>
+                    <tooltip>The version number of the 4-Tell extension</tooltip>
+                    <frontend_model>FourTell\Recommend\Block\System\Config\Form\Field\Version</frontend_model>
+                </field>
+                <field id="service_key" translate="label tooltip" type="text" sortOrder="10" showInDefault="1"
+                       showInWebsite="1" showInStore="0">
+                    <label>Service Key</label>
+                    <tooltip>To generate a service key, log in to the 4-Tell dashboard.</tooltip>
+                </field>
+                <field id="client_id" translate="label tooltip" type="text" sortOrder="15" showInDefault="1"
+                       showInWebsite="1" showInStore="1">
+                    <label>Client Alias</label>
+                    <tooltip>Enter your Client Alias, this is supplied to you by 4-Tell.</tooltip>
+                </field>
+                <field id="mode" translate="label tooltip" type="select" sortOrder="20" showInDefault="1"
+                       showInWebsite="1" showInStore="0">
+                    <label>Mode</label>
+                    <tooltip>Set to Live for production and Stage for testing.</tooltip>
+                    <source_model>FourTell\Recommend\Model\Config\Source\Mode</source_model>
+                </field>
+                <field id="curl_timeout" translate="label tooltip" type="text" sortOrder="25" showInDefault="1"
+                       showInWebsite="1" showInStore="0">
+                    <label>Timeout in Seconds</label>
+                    <tooltip>Timeout in seconds to wait for recommendations</tooltip>
+                </field>
+                <field id="ssl_required" translate="label tooltip" type="select" sortOrder="30" showInDefault="1"
+                       showInWebsite="0" showInStore="0">
+                    <label>SSL Required for Data Access</label>
+                    <tooltip>Set to Yes if https is required for access to the data feed. Set to No otherwise.</tooltip>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>
+            </group>
+            <group id="display_recommendation" translate="label" type="text" sortOrder="2" showInDefault="1"
+                   showInWebsite="1" showInStore="1">
+                <label>Display Settings</label>
+                <field id="hide_magento_related" translate="label tooltip" type="select" sortOrder="5" showInDefault="1"
+                       showInWebsite="1" showInStore="0">
+                    <label>Hide Magento Related</label>
+                    <tooltip>Set to Yes to hide Magento Related products display. Set to No otherwise.</tooltip>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>
+                <field id="hide_magento_upsell" translate="label tooltip" type="select" sortOrder="10" showInDefault="1"
+                       showInWebsite="1" showInStore="0">
+                    <label>Hide Magento Upsell</label>
+                    <tooltip>Set to Yes to hide Magento Upsell products display. Set to No otherwise.</tooltip>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>
+                <field id="hide_magento_crosssell" translate="label tooltip" type="select" sortOrder="15"
+                       showInDefault="1" showInWebsite="1" showInStore="0">
+                    <label>Hide Magento Crosssell</label>
+                    <tooltip>Set to Yes to hide Magento Crosssell products display. Set to No otherwise.</tooltip>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>
+                <field id="recreate" translate="label tooltip" type="button" sortOrder="20" showInDefault="1"
+                       showInWebsite="1" showInStore="0">
+                    <label>4-Tell Image Cache</label>
+                    <frontend_model>FourTell\Recommend\Block\System\Config\Form\Field\Recreate</frontend_model>
+                    <tooltip>This will regenerate the images used for recommendations.</tooltip>
+                </field>
+                <field id="image_size" translate="label tooltip" type="text" sortOrder="25" showInDefault="1"
+                       showInWebsite="1" showInStore="0">
+                    <label>Image Size</label>
+                    <frontend_model>FourTell\Recommend\Block\System\Config\Form\Field\ImageSize</frontend_model>
+                    <validate>validate-digits validate-digits-range digits-range-30-600</validate>
+                    <comment>min: 30 , max: 600</comment>
+                </field>
+                <field id="thumbnail_number" translate="label tooltip" type="select" sortOrder="30" showInDefault="1"
+                       showInWebsite="1" showInStore="0">
+                    <label>Image Source</label>
+                    <source_model>FourTell\Recommend\Model\Config\Source\Thumbnail</source_model>
+                    <tooltip>Choose the thumbnail image for the recommendations.</tooltip>
+                </field>
+                <field id="js_loader" translate="label tooltip" type="textarea" sortOrder="35" showInDefault="1"
+                       showInWebsite="0" showInStore="0">
+                    <label>JavaScript Loader</label>
+                    <frontend_model>FourTell\Recommend\Block\System\Config\Form\Field\JsLoader</frontend_model>
+                    <tooltip>Edit the JavaScript Loader used by 4-Tell. This field is enabled only if you are using
+                        JavaScript to display recommendations. Please do not edit without 4-Tell’s permission as one
+                        wrong character can remove all of your recommendations.
+                    </tooltip>
+                </field>
+            </group>
+            <group id="advanced_settings" translate="label tooltip" type="text" sortOrder="3" showInDefault="1"
+                   showInWebsite="1" showInStore="1">
+                <label>Advanced Settings</label>
+                <field id="manufacturer_enable" translate="label tooltip" type="select" sortOrder="1" showInDefault="1"
+                       showInWebsite="1" showInStore="0">
+                    <label>Include Manufacturer in Catalog</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <tooltip>Set to Yes to include manufacturer in the Catalog feed. You will be prompted for the
+                        attribute code to use. Set to No otherwise
+                    </tooltip>
+                    <backend_model>FourTell\Recommend\Model\Config\Source\ManufacturerEnable</backend_model>
+                </field>
+                <field id="manufacturer" translate="label comment" type="text" sortOrder="2" showInDefault="1"
+                       showInWebsite="1" showInStore="0">
+                    <label>Attribute Code</label>
+                    <depends>
+                        <field id="manufacturer_enable">1</field>
+                    </depends>
+                    <tooltip>Like manufacturer, brand, ...</tooltip>
+                </field>
+                <field id="groupprod" translate="label tooltip" type="select" sortOrder="3" showInDefault="1"
+                       showInWebsite="1" showInStore="0">
+                    <label>Recommend Grouped Products</label>
+                    <source_model>FourTell\Recommend\Model\Config\Source\Group</source_model>
+                    <tooltip>If you want to recommend grouped products, please leave this rule enabled. If you want to
+                        only recommend simple products, and never the group, please disable the rule. Disabling the rule
+                        is best if you have few sales of grouped products.
+                    </tooltip>
+                </field>
+                <field id="bundleprod" translate="label tooltip" type="select" sortOrder="4" showInDefault="1"
+                       showInWebsite="1" showInStore="0">
+                    <label>Recommend Bundled Products</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <tooltip>If you want to recommend bundled products, please leave this rule enabled. If you want to
+                        only recommend simple products, and never the bundle, please disable the rule. Disabling the
+                        rule is best if you have few sales of bundled products.
+                    </tooltip>
+                </field>
+                <group id="restrict" translate="label" showInDefault="1" showInWebsite="1" showInStore="0"
+                       sortOrder="6">
+                    <label>Restrict Catalog Export</label>
+                    <field id="restrict_attribute_enabled" type="select" translate="label comment" sortOrder="2"
+                           showInDefault="1" showInWebsite="1" showInStore="0">
+                        <label>By Attribute</label>
+                        <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                        <backend_model>FourTell\Recommend\Model\Config\Source\RestrictAttributeEnable</backend_model>
+                        <tooltip>Set to Yes if you want to restrict the catalog feed to those products with the
+                            specified attribute set to the specified value, set to No otherwise
+                        </tooltip>
+                    </field>
+                    <field id="restrict_attribute" type="text" translate="label comment" sortOrder="3" showInDefault="1"
+                           showInWebsite="1" showInStore="0">
+                        <label>Attribute</label>
+                        <frontend_model>FourTell\Recommend\Block\System\Config\Form\Field\AttributeEquals</frontend_model>
+                        <depends>
+                            <field id="restrict_attribute_enabled">1</field>
+                        </depends>
+                    </field>
+                    <field id="restrict_status_enabled" type="select" translate="label comment" sortOrder="4"
+                           showInDefault="1" showInWebsite="1" showInStore="0">
+                        <label>By Status</label>
+                        <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                        <backend_model>FourTell\Recommend\Model\Config\Source\RestrictStatusEnable</backend_model>
+                        <tooltip>Set to Yes if you want to restrict the catalog feed to those products whose status is
+                            set to the specified value, set to No otherwise
+                        </tooltip>
+                    </field>
+                    <field id="restrict_status" type="select" translate="label" sortOrder="5" showInDefault="1"
+                           showInWebsite="1" showInStore="0">
+                        <label>Status</label>
+                        <source_model>FourTell\Recommend\Model\Config\Source\Status</source_model>
+                        <depends>
+                            <field id="restrict_status_enabled">1</field>
+                        </depends>
+                    </field>
+                    <field id="restrict_visibility_enabled" type="select" translate="label comment" sortOrder="6"
+                           showInDefault="1" showInWebsite="1" showInStore="0">
+                        <label>By Visibility</label>
+                        <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                        <backend_model>FourTell\Recommend\Model\Config\Source\RestrictVisibilityEnable</backend_model>
+                        <tooltip>et to Yes if you want to restrict the catalog feed to those products whose visibility
+                            is set to the specified value, set to No otherwise
+                        </tooltip>
+                    </field>
+                    <field id="restrict_visibility" type="multiselect" translate="label" sortOrder="7" showInDefault="1"
+                           showInWebsite="1" showInStore="0">
+                        <label>Visibility</label>
+                        <source_model>FourTell\Recommend\Model\Config\Source\Visibility</source_model>
+                        <depends>
+                            <field id="restrict_visibility_enabled">1</field>
+                        </depends>
+                    </field>
+                </group>
+            </group>
+        </section>
+    </system>
+</config>

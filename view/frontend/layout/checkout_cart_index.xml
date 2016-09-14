@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<!--
+/**
+* 4-Tell Product Recommendations
+* Copyright © 2015 4-Tell, Inc. All rights reserved.
+*/
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <referenceBlock name="checkout.cart.crosssell" remove="true"/>
+        <referenceContainer name="checkout.cart.items" as="with-items">
+            <block class="FourTell\Recommend\Block\Cart\Crosssell" name="recommend.cart.crosssell"
+                   template="Magento_Catalog::product/list/items.phtml" after="-">
+            </block>
+        </referenceContainer>
+    </body>
+</page>

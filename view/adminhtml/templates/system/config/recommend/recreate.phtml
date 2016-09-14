@@ -1,0 +1,73 @@
+<?php
+/**
+ * 4-Tell Product Recommendations
+ * Copyright © 2015 4-Tell, Inc. All rights reserved.
+ */
+// @codingStandardsIgnoreFile
+?>
+
+<?php /* @var $block FourTell\Recommend\Block\System\Config\Form\Field\Recreate */ ?>
+
+<script>
+    require([
+        'jquery',
+        'prototype',
+        'mage/backend/validation',
+        'jquery/validate'
+    ], function (jQuery) {
+
+        jQuery('#recreate_button').click(function () {
+            disableRecreateButton();
+            ajaxRecreateSubmit(0);
+            enableRecreateButton();
+        });
+
+        function ajaxRecreateSubmit(startId) {
+            if (!$('recreate_message_span').hasClassName('no-display'))
+                $('recreate_message_span').addClassName('no-display');
+            if ($('recreate_span').hasClassName('no-display')) {
+                $('recreate_span').removeClassName('no-display');
+            }
+            var loadUrl = '<?php /* @escapeNotVerified */ echo $block->getAjaxUrl() ?>';
+            var clientAlias = $('recommend_general_settings_client_id').value;
+            new Ajax.Request(loadUrl, {
+                method: 'get',
+                parameters: {alias: clientAlias, startId: startId, form_key: FORM_KEY},
+                loaderArea: false,
+                asynchronous: true,
+                onComplete: function (transport) {
+                    var response = JSON.parse(transport.responseText);
+                    if (response.status == 'success' && response.startId) {
+                        ajaxRecreateSubmit(response.startId);
+                    }
+                    else {
+                        if (!$('recreate_span').hasClassName('no-display')) {
+                            $('recreate_span').addClassName('no-display');
+                        }
+                    }
+                    if (response.error)
+                        if ($('recreate_message_span').hasClassName('no-display'))
+                            $('recreate_message_span').removeClassName('no-display');
+                    $('recreate_message_span').update(response.message);
+                }
+            });
+            return true;
+        }
+
+        function enableRecreateButton() {
+            Form.Element.enable('recreate_button');
+            $('recreate_button').removeClassName('disabled');
+        }
+
+        function disableRecreateButton() {
+            Form.Element.disable('recreate_button');
+            $('recreate_button').addClassName('disabled');
+        }
+    });
+</script>
+<?php echo $block->getButtonHtml() ?>
+<span class="recreate-indicator no-display" id="recreate_span">
+    <img alt="Running" style="margin:0 5px" src="<?php /* @escapeNotVerified */
+    echo $block->getViewFileUrl('images/process_spinner.gif') ?>"/>
+</span>
+<span id="recreate_message_span" class="no-display"></span>

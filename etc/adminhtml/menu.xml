@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<!--
+/**
+* 4-Tell Product Recommendations
+* Copyright © 2015 4-Tell, Inc. All rights reserved.
+*/
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Backend:etc/menu.xsd">
+    <menu>
+        <add id="FourTell_Recommend::config" title="4-Tell Boost" module="FourTell_Recommend"
+             action="adminhtml/system_config/edit/section/recommend" sortOrder="100"
+             resource="FourTell_Recommend::recommend_config"/>
+    </menu>
+</config>
