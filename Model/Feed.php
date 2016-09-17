@@ -481,10 +481,7 @@ class Feed implements FeedInterface
                 if ($status == \Magento\Catalog\Model\Product\Attribute\Source\Status::STATUS_DISABLED)
                     $qty = 0;
                 //Set the inventory to zero for those products that are labeled "Out Of Stock"
-                if ($this->stockRegistry->getProductStockStatus($product->getId())) {
-                    $stockAvailability = 'In Stock';
-                } else {
-                    $stockAvailability = 'Out of Stock';
+                if (!$this->stockRegistry->getProductStockStatus($product->getId())) {
                     $qty = 0;
                 }
                 $this->resultData[] = array($productId, $qty);
@@ -592,10 +589,10 @@ class Feed implements FeedInterface
                 number_format($priceList, 2, '.', ''),
                 number_format($priceCost, 2, '.', ''),
                 number_format($qty, 0),
-                $visible,
+                (string)$visible,
                 $productUrl,
                 $image,
-                $avg,
+                (string)$avg,
                 $product->getSku(),
                 $parentIds,
                 $product->getTypeId(),

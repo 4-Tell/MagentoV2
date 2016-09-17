@@ -7,7 +7,6 @@ namespace FourTell\Recommend\Helper;
 
 use Magento\Framework\App\ResourceConnection;
 use FourTell\Recommend\Model\Query;
-use FourTell\Recommend\Model\Feed;
 
 /**
  * Class Data
@@ -130,6 +129,13 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
     protected $_productModel;
 
     /**
+     * Resource model
+     *
+     * @var \Magento\Catalog\Model\ResourceModel\Product\Gallery
+     */
+    protected $resourceModelCatalog;
+
+    /**
      * Construct
      *
      * @param \Magento\Framework\App\Helper\Context $context
@@ -147,6 +153,7 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
      * @param \Magento\Reports\Model\Product\Index\Factory $indexFactory
      * @param \Magento\Customer\Model\Visitor $customerVisitor
      * @param \Magento\Catalog\Model\Product $productModel
+     * @param \Magento\Catalog\Model\ResourceModel\Product\Gallery
      */
     public function __construct(
         \Magento\Framework\App\Helper\Context $context,
@@ -163,7 +170,8 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
         \Magento\Framework\Registry $registry,
         \Magento\Reports\Model\Product\Index\Factory $indexFactory,
         \Magento\Customer\Model\Visitor $customerVisitor,
-        \Magento\Catalog\Model\Product $productModel
+        \Magento\Catalog\Model\Product $productModel,
+        \Magento\Catalog\Model\ResourceModel\Product\Gallery $resourceModelCatalog
     )
     {
         parent::__construct($context);
@@ -182,6 +190,7 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
         $this->_indexFactory = $indexFactory;
         $this->_customerVisitor = $customerVisitor;
         $this->_productModel = $productModel;
+        $this->resourceModelCatalog = $resourceModelCatalog;
     }
 
     /**
@@ -519,19 +528,43 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
      * Create product image cache
      *
      * @param $product
-     * @param string $imageId
      *
      * @return void
      */
-    public function createImageCache($product, $imageId = 'product_listing_thumbnail')
+    public function createImageCache($product)
     {
-        $imageSizeArr = $this->_storesConfig->getStoresConfigByPath(self::XML_PATH_IMAGE_SIZE);
-        foreach ($imageSizeArr as $imageSize) {
-            $size = explode(',', $imageSize);
-            if (isset($size[0]) && !empty($size[0]) && isset($size[1]) && !empty($size[1])) {
-                $imageHelper = $this->imageHelper->init($product, $imageId, array('width' => $size[0], 'height' => $size[1]));
-                $imageHelper->getUrl();
+        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+        $product = $objectManager->create('\Magento\Catalog\Model\Product')->load($product->getId());
+        $storeIds = $product->getStoreIds();
+        $storeIds[] = \Magento\Store\Model\Store::DEFAULT_STORE_ID;
+
+        foreach($storeIds as $storeId) {
+            $thumbnail_number = $this->getThumbnailNumber($storeId);
+            $imageSize = $this->getImageSize($storeId);
+            $imageFile = $this->imageHelper->getPlaceholder();
+            switch ($thumbnail_number) {
+                case 'base' :
+                    $imageFile = $product->getImage();
+                    break;
+                case 'small' :
+                    $imageFile = $product->getSmallImage();
+                    break;
+                case 'thumbnail' :
+                    $imageFile = $product->getThumbnail();
+                    break;
+                default:
+                    $mediaGallery = $product->getMediaGalleryImages();
+                    if ($mediaGallery instanceof \Magento\Framework\Data\Collection) {
+                        foreach ($mediaGallery as $image) {
+                            if (($image->getPosition() == $thumbnail_number) && ($image->getMediaType() == 'image')) {
+                                $imageFile = $image->getFile();
+                            }
+                        }
+                    }
             }
+            $this->imageHelper->init($product, 'recommend_product_image_listing', $imageSize)
+                ->setImageFile($imageFile)
+                ->getUrl();
         }
     }
 
@@ -547,23 +580,33 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
         $thumbnail_number = $this->getThumbnailNumber($storeId);
         $imageSize = $this->getImageSize($storeId);
         $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
-
-        if (!empty($thumbnail_number) || $thumbnail_number != 0) {
-            $product = $objectManager->create('\Magento\Catalog\Model\Product')->load($product->getId());
-            $mediaGallery = $product->getMediaGalleryImages();
-            if ($mediaGallery instanceof \Magento\Framework\Data\Collection) {
-                foreach ($mediaGallery as $image) {
-                    if ($image->getPosition() == $thumbnail_number) {
-                        $url = $this->imageHelper->init($product, 'recommend_product_image_listing', $imageSize)
-                            ->setImageFile($image->getFile())
-                            ->getUrl();
-                        return $url;
+        $imageFile = $this->imageHelper->getPlaceholder();
+        switch($thumbnail_number){
+            case 'base' :
+                $imageFile = $product->getImage();
+                break;
+            case 'small' :
+                $imageFile = $product->getSmallImage();
+                break;
+            case 'thumbnail' :
+                $imageFile = $product->getThumbnail();
+                break;
+            default:
+                $product = $objectManager->create('\Magento\Catalog\Model\Product')->load($product->getId());
+                $mediaGallery = $product->getMediaGalleryImages();
+                if ($mediaGallery instanceof \Magento\Framework\Data\Collection) {
+                    foreach ($mediaGallery as $image) {
+                        if (($image->getPosition() == $thumbnail_number) && ($image->getMediaType() == 'image')) {
+                            $imageFile = $image->getFile();
+                        }
                     }
                 }
-            }
         }
+        $url = $this->imageHelper->init($product, 'recommend_product_image_listing', $imageSize)
+            ->setImageFile($imageFile)
+            ->getUrl();
 
-        return $this->imageHelper->init($product, 'recommend_product_image_listing', $imageSize)->getUrl();
+        return $url;
     }
 
     /**

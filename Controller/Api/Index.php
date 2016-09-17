@@ -34,6 +34,8 @@ class Index extends Action
     /**
      * @param Context $context
      * @param \Psr\Log\LoggerInterface $logger
+     * @param ApiHelper $helper
+     * @param Feed $feed
      */
     public function __construct(
         Context $context,

@@ -15,7 +15,9 @@ class Thumbnail implements \Magento\Framework\Option\ArrayInterface
     public function toOptionArray()
     {
         return [
-            '0' => __('Default'),
+            'thumbnail' => __('Default Thumbnail'),
+            'small' => __('Default Small Image'),
+            'base' => __('Default Base Image'),
             '1' => __('1'),
             '2' => __('2'),
             '3' => __('3'),

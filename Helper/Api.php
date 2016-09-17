@@ -6,7 +6,6 @@
 
 namespace FourTell\Recommend\Helper;
 
-use FourTell\Recommend\Helper\Data;
 use \DateTime;
 use Magento\Framework\Exception\AuthorizationException;
 use Magento\Framework\Exception\SecurityViolationException;
