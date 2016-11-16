@@ -20,12 +20,7 @@
                 <hide_magento_crosssell>1</hide_magento_crosssell>
                 <image_size>200,200</image_size>
                 <js_loader><![CDATA[<!--4-Tell Recommendations Begin (www.4-tell.com)-->
-                    <script type="text/javascript" async src="//4tcdn.blob.core.windows.net/4tjs3/4TellLoader.js?alias=CLIENT_ALIAS&mode=MODE"></script>
-                    <script type="text/javascript">
-                        window._4TellBoost = {};
-                        //4-TELL_EXTRA_CODE
-                    </script>
-                    <!--4-Tell Recommendations End-->]]>
+                    <script type="text/javascript" async src="//4tcdn.blob.core.windows.net/4tjs3/4TellLoader.js?alias=CLIENT_ALIAS&mode=MODE"></script>]]>
                 </js_loader>
             </display_recommendation>
             <advanced_settings>

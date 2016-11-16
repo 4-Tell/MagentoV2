@@ -1,0 +1,10 @@
+<?php
+/* @var $block \FourTell\Recommend\Block\Checkout\Success */
+
+if ($block->isConfigEnable()):
+?>
+<!-- 4Tell Conversion Tracking -->
+<div id="data_4Tell" data-page="ord" data-customer="<?=$block->getCurrentCustomerId() ?>" data-orderId="<?=$block->getCurrentOrderId() ?>" data-orderDetails="<?=$block->getOrderDetails() ?>" ></div>
+<!-- End 4Tell Conversion Tracking -->
+<?php
+endif;

@@ -206,7 +206,7 @@ class Feed implements FeedInterface
     public function getCustomers()
     {
         $this->_result = [];
-        $this->resultDataHead = array('CustomerID', 'Name', 'Email', 'PostalCode', 'State');
+        $this->resultDataHead = array('CustomerID', 'Email', 'Name', 'Address', 'Address2', 'City', 'State', 'PostalCode', 'Country', 'Phone');
         $searchResultDataHead = array_map('strtolower', $this->resultDataHead);
         $extraFields = $this->_helper->getExtraFields();
         if (!empty($extraFields)) {
@@ -267,46 +267,33 @@ class Feed implements FeedInterface
         foreach ($items as $item) {
             $res = [
                 $item->getId(),
-                $this->getCustomerName($item),
                 $item->getEmail(),
+                $this->getCustomerName($item)
             ];
 
             if ($item->getDefaultBilling()) {
                 $customerAddress = $this->_addressRepository->getById($item->getDefaultBilling());
-                $res[] = $customerAddress->getPostcode();
-                $res[] = $customerAddress->getRegion()->getRegion();
-
-                if (!empty($extraFields)) {
-                    foreach ($extraFields as $extraField) {
-                        switch ($extraField) {
-                            case 'Address':
-                                $street = $customerAddress->getStreet();
-                                if (!is_null($street))
-                                    $res[] = implode(' ', $street);
-                                else
-                                    $res[] = '';
-                                break;
-
-                            case 'City':
-                                $res[] = $customerAddress->getCity();
-                                break;
-
-                            case 'Phone':
-                                $res[] = $customerAddress->getTelephone();
-                                break;
-
-                            case 'Country':
-                                $res[] = $customerAddress->getCountryId();
-                                break;
-                            default:
-                                $res[] = '';
-                        }
-                    }
+                $street = $customerAddress->getStreet();
+                if (!is_null($street)) {
+                    $res[] = $street[0];
+                    if (isset($street[1]))
+                        $res[] = $street[1];
+                    else
+                        $res[] = '';
+                } else {
+                    $res[] = '';
+                    $res[] = '';
                 }
+                $res[] = $customerAddress->getCity();
+                $res[] = $customerAddress->getRegion()->getRegion();
+                $res[] = $customerAddress->getPostcode();
+                $res[] = $customerAddress->getCountryId();
+                $res[] = $customerAddress->getTelephone();
             } else {
-                //'PostalCode', 'State'
-                $res[] = '';
-                $res[] = '';
+                //'Address', 'Address2', 'City', 'State', 'PostalCode', 'Country', 'Phone'
+                for ($ii = 0; $ii < 7; $ii++) {
+                    $res[] = '';
+                }
                 foreach ($extraFields as $extraField) {
                     $res[] = '';
                 }
@@ -425,11 +412,8 @@ class Feed implements FeedInterface
             }
 
         }
-        $collection->addAttributeToSelect(
-            'name'
-        )->addAttributeToSelect(
-            'type_id'
-        )->addAttributeToSelect('*');
+        $collection->addAttributeToSelect('*');
+
         //DateRange
         $dateRange = $this->_helper->getDateRange();
 
@@ -579,6 +563,130 @@ class Feed implements FeedInterface
             else
                 $avg = '';
 
+//            if ($product->getColor())
+//                $color = $product->getAttributeText('color');
+//            else
+//                $color = '';
+
+            $extraFieldsValue = [];
+            $extraFieldsSwatch = [];
+            foreach ($extraFields as $extraField) {
+                $extraFieldsSwatch[] = str_replace('.swatch', '', $extraField);
+            }
+
+            if (!is_null($extraFields)) {
+                /** @var \Magento\Eav\Model\ResourceModel\Entity\Attribute\Option\Collection $attributes */
+                $attributes = $this->attrCollectionFactory->create()
+                    ->addFieldToFilter('attribute_code', array('in' => $extraFieldsSwatch))
+                    ->load();
+                foreach ($extraFields as $extraField) {
+                    $extraField = strtolower($extraField);
+                    $found = false;
+                    switch ($extraField) {
+                        case 'related':
+                            $extraFieldsValue[] = implode(',', $product->getRelatedProductIds());
+                            $found = true;
+                            break;
+                        case 'up-sells':
+                            $extraFieldsValue[] = implode(',', $product->getUpSellProductIds());
+                            $found = true;
+                            break;
+                        case 'cross-sells':
+                            $extraFieldsValue[] = implode(',', $product->getCrossSellProductIds());
+                            $found = true;
+                            break;
+                        case 'image.1':
+                        case 'image.2':
+                        case 'image.3':
+                        case 'image.4':
+                        case 'image.5':
+                        case 'image.6':
+                        case 'image.7':
+                        case 'image.8':
+                        case 'image.9':
+                        case 'image.10':
+                        case 'image.11':
+                        case 'image.12':
+                        case 'image.13':
+                        case 'image.14':
+                        case 'image.15':
+                        case 'image.16':
+                        case 'image.17':
+                        case 'image.18':
+                        case 'image.19':
+                        case 'image.20':
+                            $imagePos = explode('.', $extraField);
+                            $extraFieldsValue[] = $this->_helper->getImageUrlByPos($product, $storeIds[0], (int)$imagePos[1]);
+                            $found = true;
+                            break;
+
+                        default:
+                            foreach ($attributes as $attribute) {
+                                $swatchField = $attribute->getAttributeCode() . '.swatch';
+                                if ($swatchField == $extraField) {
+                                    // check for swatch
+                                    $optionIdvalue = $product->getData($attribute->getAttributeCode());
+                                    $swatchHelper = $objectManager->get("Magento\Swatches\Helper\Media");
+                                    $swatchCollection = $objectManager->create('Magento\Swatches\Model\ResourceModel\Swatch\Collection');
+                                    $swatchCollection->addFieldtoFilter('option_id', $optionIdvalue);
+                                    $resultItem = $swatchCollection->getFirstItem();
+                                    if ($resultItem['type'] == \Magento\Swatches\Model\Swatch::SWATCH_TYPE_VISUAL_IMAGE && !empty($resultItem['value'])) {
+//                                        $swatchThumb = $swatchHelper->getSwatchAttributeImage(
+//                                            \Magento\Swatches\Model\Swatch::SWATCH_THUMBNAIL_NAME,
+//                                            $resultItem['value']
+//                                        );
+                                        $swatchImage = $swatchHelper->getSwatchAttributeImage(
+                                            \Magento\Swatches\Model\Swatch::SWATCH_IMAGE_NAME,
+                                            $resultItem['value']
+                                        );
+                                    } else
+                                        $swatchImage = $resultItem['value'];
+
+                                    if (!is_null($swatchImage))
+                                        $extraFieldsValue[] = $swatchImage;
+                                    else
+                                        $extraFieldsValue[] = '';
+
+                                    $found = true;
+                                    break;
+                                }
+                                if ($attribute->getAttributeCode() == $extraField) {
+                                    if ($attribute->getFrontendInput() == 'multiselect' || $attribute->getFrontendInput() == 'select') {
+                                        $getExtraFieldValue = [];
+                                        $extraOptionIds = $product->getData($extraField);
+                                        $extraOptionIds = explode(',', $extraOptionIds);
+                                        $extraOptions = $this->attrOptionCollectionFactory->create()
+                                            ->setAttributeFilter($attribute->getAttributeId())
+                                            ->setStoreFilter($storeIds[0])
+                                            ->setPositionOrder('asc', true)->load();
+                                        $extraOptions = $extraOptions->toArray();
+                                        if ($extraOptions['totalRecords']) {
+                                            foreach ($extraOptions['items'] as $extraOption) {
+                                                if (in_array($extraOption['option_id'], $extraOptionIds)) {
+                                                    $getExtraFieldValue[] = $extraOption['value'];
+                                                }
+                                            }
+                                        }
+                                        if (!empty($getExtraFieldValue)) {
+                                            $extraFieldsValue[] = implode(',', $getExtraFieldValue);
+                                        } else
+                                            $extraFieldsValue[] = "";
+                                    } else {
+                                        if (!is_null($product->getData($extraField)))
+                                            $extraFieldsValue[] = $product->getData($extraField);
+                                        else
+                                            $extraFieldsValue[] = '';
+                                    }
+                                    $found = true;
+                                    break;
+                                }
+                            }
+                    }
+                    if (!$found)
+                        $extraFieldsValue[] = "";
+                }
+            }
+
             $resultData = array(
                 $productId,
                 $product->getName(),
@@ -597,8 +705,14 @@ class Feed implements FeedInterface
                 $parentIds,
                 $product->getTypeId(),
                 $visibilityOptions[$visibility],
-                $stockAvailability
+                $stockAvailability,
+//                $color
             );
+
+
+            foreach ($extraFieldsValue as $extraFieldValue) {
+                $resultData[] = $extraFieldValue;
+            }
 
             $this->resultData[] = $resultData;
         }
@@ -710,7 +824,7 @@ class Feed implements FeedInterface
     public function getCategoryNames()
     {
         $result = [];
-        $result[] = ['CategoryID', 'Name'];
+        $result[] = ['CategoryID', 'Name', 'PageLink', 'ImageLink', 'ParentID'];
 
         $clientAlias = $this->_helper->ClientAlias;
         $storeIds = $this->_helper->map($clientAlias);
@@ -729,7 +843,10 @@ class Feed implements FeedInterface
         }
 
         foreach ($collection as $category) {
-            $result[] = [$category->getId(), $category->getName()];
+            $imageUrl = $category->getImageUrl();
+            if (!$imageUrl)
+                $imageUrl = '';
+            $result[] = [$category->getId(), $category->getName(), $category->getUrl(), $imageUrl, $category->getParentId()];
         }
         return $result;
     }
@@ -743,7 +860,7 @@ class Feed implements FeedInterface
     {
         $result = [];
         //Head
-        $result[] = array('OrderID', 'ProductID', 'CustomerID', 'Quantity', 'Date');
+        $result[] = array('OrderID', 'ProductID', 'CustomerID', 'Quantity', 'ItemPrice', 'Date');
         $clientAlias = $this->_helper->ClientAlias;
         $storeIds = $this->_helper->map($clientAlias);
         if (empty($storeIds))
@@ -779,7 +896,9 @@ class Feed implements FeedInterface
         }
 
 
-        $order_item_bundle = array();
+        $orderItemBundle = array();
+        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+
         // Loop through the collection data
         foreach ($collection as $item) {
             $order = $item->getOrder();
@@ -813,7 +932,6 @@ class Feed implements FeedInterface
             $order_id = $order->getData('increment_id');
             //$product_id = $item->getData('product_id');
             $product_type = $item->getData('product_type');
-
             // TODO: instead $row['qty'] ???
 //            if ($this->_helper->DataGroup == 'Returns'){
 //                $qty_refunded = $item->getData('qty_refunded');
@@ -823,21 +941,26 @@ class Feed implements FeedInterface
 //                $qty_ordered = $item->getData('qty_ordered');
 //            }
 
-            $created_at = $item->getData('created_at');
-            $dt = new DateTime($created_at);
-
+            $createdAt = $item->getData('created_at');
+            $dt = new DateTime($createdAt);
+            $price = $item->getPrice();
+            if ($price == 0) {
+                $product = $objectManager->create('\Magento\Catalog\Model\Product')->load($item->getProductId());
+                $price = $product->getPrice();
+            }
+            $price = str_replace(",", "", number_format($price, 2));
             // Need to fix method
             $row = $this->_helper->productTypeRules('sales', $item, $storeIds);
 
             if ($row) {
                 if ($product_type == 'grouped') {
-                    if (isset($order_item_bundle[$order_id]) && in_array($row['product_id'], $order_item_bundle[$order_id])) {
+                    if (isset($orderItemBundle[$order_id]) && in_array($row['product_id'], $orderItemBundle[$order_id])) {
                         continue;
                     } else {
-                        $order_item_bundle[$order_id][] = $row['product_id'];
+                        $orderItemBundle[$order_id][] = $row['product_id'];
                     }
                 }
-                $result[] = array($order->getData('increment_id'), $row['product_id'], $customerId, $row['qty'], $dt->format('Y-m-d'));
+                $result[] = array($order->getData('increment_id'), $row['product_id'], $customerId, $row['qty'], $price, $dt->format('Y-m-d H:i:s'));
             }
 
         }

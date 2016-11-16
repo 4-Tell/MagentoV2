@@ -6,6 +6,6 @@ if ($block->isConfigEnable()):
     $jsCode = str_replace("MODE", $block->getConfigMode(), $jsCode);
     $jsCode = str_replace("CLIENT_ALIAS", $block->getConfigAlias(), $jsCode);
     $extraData = $block->getExtraData();
-    $jsCode = str_replace("//4-TELL_EXTRA_CODE", $extraData, $jsCode);
+    $jsCode .= $extraData;
     echo $jsCode;
 endif;

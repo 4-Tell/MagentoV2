@@ -180,6 +180,7 @@ class Loader extends \Magento\Framework\View\Element\Template
                 $currentProduct = $coreRegistry->registry('current_product');
                 if ($currentProduct instanceof \Magento\Catalog\Model\Product) {
                     $data['ProductIDs'] = $this->getProductIds($currentProduct);
+                    $data['ProductSKU'] = $currentProduct->getSku();
                 }
                 break;
 
@@ -191,11 +192,20 @@ class Loader extends \Magento\Framework\View\Element\Template
         $data['CustomerId'] = $customerSession->getCustomerId();
         $data['CartIDs'] = implode(",", $this->productTypeRulesCartProductIds());
 
-        $res = "";
         foreach ($data as $key => $value) {
-            if (!empty($value))
-                $res .= "window._4TellBoost.$key='$value'; ";
+            if (empty($value))
+                unset($data[$key]);
         }
+        $encoded = \Zend_Json::encode($data);
+
+        $res = <<<SCRIPT
+
+<script type="text/javascript">
+    window._4TellBoost = {$encoded};
+</script>
+<!--4-Tell Recommendations End-->
+
+SCRIPT;
         return $res;
     }
 

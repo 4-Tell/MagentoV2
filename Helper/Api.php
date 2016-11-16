@@ -140,7 +140,6 @@ class Api extends Data
         }
 
         $clientAlias = $this->_request->getParam('ClientAlias');
-        $this->_logger->debug($clientAlias);
 
         //check clientAlias
         $configClientAliases = $this->_getClientAliases();
@@ -159,7 +158,6 @@ class Api extends Data
         // Grab existing service key from the admin scope
         // tyt treba testutu -> 0 пробувати передати $store = 0
         $service_key = $this->getConfig(self::XML_SERVICE_KEY);
-        $this->_logger->debug($service_key);
         if( (!$service_key || strlen(trim($service_key)) == 0)) {
             return false;
         }

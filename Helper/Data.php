@@ -410,6 +410,7 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
          */
         $collection = $this->_categoryCollectionFactory->create();
         $collection->addAttributeToSelect('name');
+        $collection->addAttributeToSelect('image');
 
         $paths = array();
         foreach ($storeIds as $storeId) {
@@ -424,25 +425,26 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
      * productTypeRules
      *
      * @param $call_type
-     * @param \Magento\Sales\Model\ResourceModel\Order\Item $order_item
+     * @param \Magento\Sales\Model\ResourceModel\Order\Item $orderItem
      * @param $storeIds
      *
      * @return array
      */
-    public function productTypeRules($call_type, $order_item, $storeIds = null)
+    public function productTypeRules($callType, $orderItem, $storeIds = null)
     {
         $skipRow = false;
-        $productId = $order_item->getData('product_id');
+        $productId = $orderItem->getData('product_id');
         $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
-        $product = $order_item->getProduct();
-        $product_type_real = $product->getTypeID();
+        //$product = $order_item->getProduct();
+        //$product_type_real = $product->getTypeID();
+        $productTypeReal = $orderItem->getData('product_type');
         $configurableProductModel = $objectManager->get('\Magento\ConfigurableProduct\Model\Product\Type\Configurable');
-        $grouped_product_model = $objectManager->get('\Magento\GroupedProduct\Model\Product\Type\Grouped');
-        $bundle_product_model = $objectManager->get('Magento\Bundle\Model\Product\Type');
-        switch ($product_type_real) {
+        $groupedProductModel = $objectManager->get('\Magento\GroupedProduct\Model\Product\Type\Grouped');
+        $bundleProductModel = $objectManager->get('Magento\Bundle\Model\Product\Type');
+        switch ($productTypeReal) {
             case 'configurable':
                 //Sales Feed
-                if ($call_type == 'sales')
+                if ($callType == 'sales')
                     $skipRow = true;
                 break;
             case 'grouped':
@@ -455,34 +457,34 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
                     $skipRow = true;
                 break;
             default:
-                if ($order_item->getData('product_options')) {
-                    $product_options = $order_item->getData('product_options');
+                if ($orderItem->getData('product_options')) {
+                    $productOptions = $orderItem->getData('product_options');
                     $parentIdArray = $configurableProductModel->getParentIdsByChild($productId);
                     if (isset($parentIdArray[0])) {
-                        if (isset($product_options['info_buyRequest']['product']))
-                            if ($product_options['info_buyRequest']['product'] != $productId)
-                                if ($call_type == 'tracking')
+                        if (isset($productOptions['info_buyRequest']['product']))
+                            if ($productOptions['info_buyRequest']['product'] != $productId)
+                                if ($callType == 'tracking')
                                     $skipRow = true;
 
                     }
 
-                    $parentIdArray = $grouped_product_model->getParentIdsByChild($productId);
+                    $parentIdArray = $groupedProductModel->getParentIdsByChild($productId);
                     if (isset($parentIdArray[0])) {
                         //if the Simple product is associated with a Grouped product (i.e. child).
                         if ($this->getConfig(self::XML_PATH_ADVANCED_GROUPPROD, is_null($storeIds) ? $storeIds : $storeIds[0])) {
-                            if (isset($product_options['info_buyRequest']['super_product_config']['product_id']))
-                                if ($product_options['info_buyRequest']['super_product_config']['product_id'] != $productId)
-                                    $productId = $product_options['info_buyRequest']['super_product_config']['product_id'];
+                            if (isset($productOptions['info_buyRequest']['super_product_config']['product_id']))
+                                if ($productOptions['info_buyRequest']['super_product_config']['product_id'] != $productId)
+                                    $productId = $productOptions['info_buyRequest']['super_product_config']['product_id'];
                         }
 
                     }
 
-                    $parentIdArray = $bundle_product_model->getParentIdsByChild($productId);
+                    $parentIdArray = $bundleProductModel->getParentIdsByChild($productId);
                     if (isset($parentIdArray[0])) {
                         //if the Simple product is associated with a Bundle product (i.e. child).
                         if ($this->getConfig(self::XML_PATH_ADVANCED_BUNDLEPROD, is_null($storeIds) ? $storeIds : $storeIds[0])) {
-                            if (isset($product_options['info_buyRequest']['product']))
-                                if ($product_options['info_buyRequest']['product'] != $productId)
+                            if (isset($productOptions['info_buyRequest']['product']))
+                                if ($productOptions['info_buyRequest']['product'] != $productId)
                                     $skipRow = true;
                         }
                     }
@@ -494,10 +496,11 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
         if ($skipRow)
             return false;
 
-        $qty_ordered = $order_item->getData('qty_ordered');
+        $qtyOrdered = $orderItem->getData('qty_ordered');
         $res = array(
             'product_id' => $productId,
-            'qty' => strval(intval($qty_ordered))
+            'qty' => strval(intval($qtyOrdered)),
+            'price' => $orderItem->getData('price')
         );
         return $res;
     }
@@ -538,7 +541,7 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
         $storeIds = $product->getStoreIds();
         $storeIds[] = \Magento\Store\Model\Store::DEFAULT_STORE_ID;
 
-        foreach($storeIds as $storeId) {
+        foreach ($storeIds as $storeId) {
             $thumbnail_number = $this->getThumbnailNumber($storeId);
             $imageSize = $this->getImageSize($storeId);
             $imageFile = $this->imageHelper->getPlaceholder();
@@ -577,11 +580,11 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
      */
     public function getImageUrl($product, $storeId)
     {
-        $thumbnail_number = $this->getThumbnailNumber($storeId);
+        $thumbnailNumber = $this->getThumbnailNumber($storeId);
         $imageSize = $this->getImageSize($storeId);
         $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
         $imageFile = $this->imageHelper->getPlaceholder();
-        switch($thumbnail_number){
+        switch ($thumbnailNumber) {
             case 'base' :
                 $imageFile = $product->getImage();
                 break;
@@ -596,7 +599,7 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
                 $mediaGallery = $product->getMediaGalleryImages();
                 if ($mediaGallery instanceof \Magento\Framework\Data\Collection) {
                     foreach ($mediaGallery as $image) {
-                        if (($image->getPosition() == $thumbnail_number) && ($image->getMediaType() == 'image')) {
+                        if (($image->getPosition() == $thumbnailNumber) && ($image->getMediaType() == 'image')) {
                             $imageFile = $image->getFile();
                         }
                     }
@@ -607,6 +610,34 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
             ->getUrl();
 
         return $url;
+    }
+
+    /**
+     * Get Image Url
+     *
+     * @param \Magento\Catalog\Model\Product $product
+     * @param $storeId
+     * @return string
+     */
+    public function getImageUrlByPos($product, $storeId, $pos)
+    {
+        $thumbnail_number = $this->getThumbnailNumber($storeId);
+        $imageSize = $this->getImageSize($storeId);
+        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+        $product = $objectManager->create('\Magento\Catalog\Model\Product')->load($product->getId());
+        $mediaGallery = $product->getMediaGalleryImages();
+        if ($mediaGallery instanceof \Magento\Framework\Data\Collection) {
+            foreach ($mediaGallery as $image) {
+                if (($image->getPosition() == $pos) && ($image->getMediaType() == 'image')) {
+                    $imageFile = $image->getFile();
+                    $url = $this->imageHelper->init($product, 'recommend_product_image_listing', $imageSize)
+                        ->setImageFile($imageFile)
+                        ->getUrl();
+                    return $url;
+                }
+            }
+        }
+        return '';
     }
 
     /**
