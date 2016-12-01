@@ -192,20 +192,14 @@ class Loader extends \Magento\Framework\View\Element\Template
         $data['CustomerId'] = $customerSession->getCustomerId();
         $data['CartIDs'] = implode(",", $this->productTypeRulesCartProductIds());
 
+        $res = '';
         foreach ($data as $key => $value) {
-            if (empty($value))
-                unset($data[$key]);
+            if (!empty($value))
+                $res .= "window._4TellBoost.$key='$value'; ";
         }
-        $encoded = \Zend_Json::encode($data);
-
-        $res = <<<SCRIPT
-
-<script type="text/javascript">
-    window._4TellBoost = {$encoded};
-</script>
-<!--4-Tell Recommendations End-->
-
-SCRIPT;
+        if (!empty($res))
+            $res = '<script type="text/javascript">' .$res. '</script>
+            <!--4-Tell Recommendations End-->';
         return $res;
     }
 

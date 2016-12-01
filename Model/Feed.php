@@ -342,7 +342,7 @@ class Feed implements FeedInterface
                 break;
 
             default:
-                $this->resultDataHead = array('ProductID', 'Name', 'CategoryIDs', 'ManufacturerID', 'Price', 'SalePrice', 'ListPrice', 'Cost', 'Inventory', 'Visible', 'Link', 'ImageLink', 'Ratings', 'StandardCode', 'ParentID', 'ProductType', 'Visibility', 'StockAvailability');
+                $this->resultDataHead = array('ProductID', 'Name', 'CategoryIDs', 'ManufacturerID', 'Price', 'SalePrice', 'PromotionPrice', 'ListPrice', 'Cost', 'Inventory', 'Visible', 'Link', 'ImageLink', 'Ratings', 'StandardCode', 'ParentID', 'ProductType', 'Visibility', 'StockAvailability');
 
                 break;
         }
@@ -491,7 +491,7 @@ class Feed implements FeedInterface
             $productUrl = $product->getUrlModel()->getUrl($product);
             if (is_null($productUrl))
                 $productUrl = '';
-            $image = $this->_helper->getImageUrl($product, $storeIds[0]);
+            $image = $this->_helper->createImageCache($product);
             $visibility = $product->getVisibility();
             $visibilityOptions = \Magento\Catalog\Model\Product\Visibility::getOptionArray();
             $visible = 1;
@@ -595,31 +595,35 @@ class Feed implements FeedInterface
                             $extraFieldsValue[] = implode(',', $product->getCrossSellProductIds());
                             $found = true;
                             break;
-                        case 'image.1':
-                        case 'image.2':
-                        case 'image.3':
-                        case 'image.4':
-                        case 'image.5':
-                        case 'image.6':
-                        case 'image.7':
-                        case 'image.8':
-                        case 'image.9':
-                        case 'image.10':
-                        case 'image.11':
-                        case 'image.12':
-                        case 'image.13':
-                        case 'image.14':
-                        case 'image.15':
-                        case 'image.16':
-                        case 'image.17':
-                        case 'image.18':
-                        case 'image.19':
-                        case 'image.20':
+//                        case 'image.1':
+//                        case 'image.2':
+//                        case 'image.3':
+//                        case 'image.4':
+//                        case 'image.5':
+//                        case 'image.6':
+//                        case 'image.7':
+//                        case 'image.8':
+//                        case 'image.9':
+//                        case 'image.10':
+//                        case 'image.11':
+//                        case 'image.12':
+//                        case 'image.13':
+//                        case 'image.14':
+//                        case 'image.15':
+//                        case 'image.16':
+//                        case 'image.17':
+//                        case 'image.18':
+//                        case 'image.19':
+//                        case 'image.20':
+//                            $imagePos = explode('.', $extraField);
+//                            $extraFieldsValue[] = $this->_helper->getImageUrlByPos($product, $storeIds[0], (int)$imagePos[1]);
+//                            $found = true;
+//                            break;
+                        case (strpos($extraField, 'image.') !== false):
                             $imagePos = explode('.', $extraField);
-                            $extraFieldsValue[] = $this->_helper->getImageUrlByPos($product, $storeIds[0], (int)$imagePos[1]);
+                            $extraFieldsValue[] = $this->_helper->getImageUrlByPos($product, $storeIds[0], $imagePos[1]);
                             $found = true;
                             break;
-
                         default:
                             foreach ($attributes as $attribute) {
                                 $swatchField = $attribute->getAttributeCode() . '.swatch';
@@ -694,6 +698,7 @@ class Feed implements FeedInterface
                 $manufacturerValue,
                 number_format($product->getPrice(), 2, '.', ''),
                 $specialPrice,
+                number_format($product->getFinalPrice(), 2, '.', ''),
                 number_format($priceList, 2, '.', ''),
                 number_format($priceCost, 2, '.', ''),
                 number_format($qty, 0),

@@ -87,25 +87,4 @@ class Query //extends \Magento\Framework\Model\AbstractModel
         $data = $connection->fetchAll($select);
         return $data;
     }
-
-    public function getSelectedBlockTypes()
-    {
-        $tableName = $this->_resource->getTableName('core_config_data');
-        $select = $this->_getConnection()->select()
-            ->from(array('t' => $tableName))
-            ->where('t.path in (?)', array('recommend/display_recommendation/related', 'recommend/display_recommendation/upsell', 'recommend/display_recommendation/crosssell'));
-        $data = $this->_getConnection()->fetchAll($select);
-        return $data;
-    }
-
-    public function getSelectedUseJs()
-    {
-        $connection = $this->_getConnection();
-        $tableName = $this->_resource->getTableName('core_config_data');
-        $select = $connection->select()
-            ->from(array('t' => $tableName))
-            ->where('t.path in (?)', array('recommend/display_recommendation/use_js_other'));
-        $data = $connection->fetchAll($select);
-        return $data;
-    }
 }
