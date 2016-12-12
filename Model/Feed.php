@@ -595,30 +595,6 @@ class Feed implements FeedInterface
                             $extraFieldsValue[] = implode(',', $product->getCrossSellProductIds());
                             $found = true;
                             break;
-//                        case 'image.1':
-//                        case 'image.2':
-//                        case 'image.3':
-//                        case 'image.4':
-//                        case 'image.5':
-//                        case 'image.6':
-//                        case 'image.7':
-//                        case 'image.8':
-//                        case 'image.9':
-//                        case 'image.10':
-//                        case 'image.11':
-//                        case 'image.12':
-//                        case 'image.13':
-//                        case 'image.14':
-//                        case 'image.15':
-//                        case 'image.16':
-//                        case 'image.17':
-//                        case 'image.18':
-//                        case 'image.19':
-//                        case 'image.20':
-//                            $imagePos = explode('.', $extraField);
-//                            $extraFieldsValue[] = $this->_helper->getImageUrlByPos($product, $storeIds[0], (int)$imagePos[1]);
-//                            $found = true;
-//                            break;
                         case (strpos($extraField, 'image.') !== false):
                             $imagePos = explode('.', $extraField);
                             $extraFieldsValue[] = $this->_helper->getImageUrlByPos($product, $storeIds[0], $imagePos[1]);
@@ -635,10 +611,6 @@ class Feed implements FeedInterface
                                     $swatchCollection->addFieldtoFilter('option_id', $optionIdvalue);
                                     $resultItem = $swatchCollection->getFirstItem();
                                     if ($resultItem['type'] == \Magento\Swatches\Model\Swatch::SWATCH_TYPE_VISUAL_IMAGE && !empty($resultItem['value'])) {
-//                                        $swatchThumb = $swatchHelper->getSwatchAttributeImage(
-//                                            \Magento\Swatches\Model\Swatch::SWATCH_THUMBNAIL_NAME,
-//                                            $resultItem['value']
-//                                        );
                                         $swatchImage = $swatchHelper->getSwatchAttributeImage(
                                             \Magento\Swatches\Model\Swatch::SWATCH_IMAGE_NAME,
                                             $resultItem['value']
@@ -710,8 +682,7 @@ class Feed implements FeedInterface
                 $parentIds,
                 $product->getTypeId(),
                 $visibilityOptions[$visibility],
-                $stockAvailability,
-//                $color
+                $stockAvailability
             );
 
 

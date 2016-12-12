@@ -564,47 +564,6 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
         return $url;
     }
 
-//    /**
-//     * Get Image Url
-//     *
-//     * @param \Magento\Catalog\Model\Product $product
-//     * @param $storeId
-//     * @return string
-//     */
-//    public function getImageUrl($product, $storeId)
-//    {
-//        $thumbnailNumber = $this->getThumbnailNumber($storeId);
-//        $imageSize = $this->getImageSize($storeId);
-//        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
-//        $imageFile = $this->imageHelper->getPlaceholder();
-//        switch ($thumbnailNumber) {
-//            case 'base' :
-//                $imageFile = $product->getImage();
-//                break;
-//            case 'small' :
-//                $imageFile = $product->getSmallImage();
-//                break;
-//            case 'thumbnail' :
-//                $imageFile = $product->getThumbnail();
-//                break;
-//            default:
-//                $product = $objectManager->create('\Magento\Catalog\Model\Product')->load($product->getId());
-//                $mediaGallery = $product->getMediaGalleryImages();
-//                if ($mediaGallery instanceof \Magento\Framework\Data\Collection) {
-//                    foreach ($mediaGallery as $image) {
-//                        if (($image->getPosition() == $thumbnailNumber) && ($image->getMediaType() == 'image')) {
-//                            $imageFile = $image->getFile();
-//                        }
-//                    }
-//                }
-//        }
-//        $url = $this->imageHelper->init($product, 'recommend_product_image_listing', $imageSize)
-//            ->setImageFile($imageFile)
-//            ->getUrl();
-//
-//        return $url;
-//    }
-
     /**
      * Get Image Url
      *

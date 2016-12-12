@@ -55,8 +55,8 @@ class Thumbnail implements \Magento\Framework\Option\ArrayInterface
             if (isset($mediaAttributes[$key]))
                 $result[$key] = $mediaAttributes[$key];
         }
-        $result = $result + $positions;
         $result = array_merge($result,$mediaAttributes);
+        $result = $result + $positions;
         return $result;
     }
 
