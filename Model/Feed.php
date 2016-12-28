@@ -21,7 +21,6 @@ use \stdClass;
 class Feed implements FeedInterface
 {
     const MODULE_NAME = 'FourTell_Recommend';
-    const XML_CURL_TIMEOUT = 'recommend/general_settings/curl_timeout';
 
     /**
      * Recommend helper
@@ -342,7 +341,7 @@ class Feed implements FeedInterface
                 break;
 
             default:
-                $this->resultDataHead = array('ProductID', 'Name', 'CategoryIDs', 'ManufacturerID', 'Price', 'SalePrice', 'PromotionPrice', 'ListPrice', 'Cost', 'Inventory', 'Visible', 'Link', 'ImageLink', 'Ratings', 'StandardCode', 'ParentID', 'ProductType', 'Visibility', 'StockAvailability');
+                $this->resultDataHead = array('ProductID', 'Name', 'CategoryIDs', 'ManufacturerID', 'Price', 'SalePrice', 'PromotionPrice', 'ListPrice', 'Cost', 'MinBundlePrice', 'MaxBundlePrice', 'Inventory', 'Visible', 'Link', 'ImageLink', 'Ratings', 'StandardCode', 'ParentID', 'ProductType', 'Visibility', 'StockAvailability');
 
                 break;
         }
@@ -663,6 +662,15 @@ class Feed implements FeedInterface
                 }
             }
 
+            $_minimalPrice = '';
+            $_maximalPrice = '';
+            if ($product->getTypeId() == "bundle"){
+                $bundleObj=$product->getPriceInfo()->getPrice('final_price');
+                $_minimalPrice = $bundleObj->getMinimalPrice()->getValue();
+                $_maximalPrice = $bundleObj->getMaximalPrice()->getValue();
+                $_minimalPrice = str_replace(",", "", number_format($_minimalPrice, 2));
+                $_maximalPrice = str_replace(",", "", number_format($_maximalPrice, 2));
+            }
             $resultData = array(
                 $productId,
                 $product->getName(),
@@ -673,6 +681,8 @@ class Feed implements FeedInterface
                 number_format($product->getFinalPrice(), 2, '.', ''),
                 number_format($priceList, 2, '.', ''),
                 number_format($priceCost, 2, '.', ''),
+                $_minimalPrice,
+                $_maximalPrice,
                 number_format($qty, 0),
                 (string)$visible,
                 $productUrl,
@@ -713,7 +723,6 @@ class Feed implements FeedInterface
             'memLimit' => $this->_helper->getMemoryLimit(),
             'OSType' => php_uname($mode = "s"),
             'OSVersion' => php_uname($mode = "v"),
-            'curlTimeout' => $this->_helper->getConfig(self::XML_CURL_TIMEOUT),
             'maxExecutionTime' => ini_get("max_execution_time")
         ];
 
@@ -917,8 +926,10 @@ class Feed implements FeedInterface
 //                $qty_ordered = $item->getData('qty_ordered');
 //            }
 
-            $createdAt = $item->getData('created_at');
-            $dt = new DateTime($createdAt);
+            $zones = $this->_helper->getTimezone($storeIds);
+            $zone = $zones[$item->getData('store_id')];
+            $dt = new \DateTime($item->getData('created_at'), new \DateTimeZone($zone));
+
             $price = $item->getPrice();
             if ($price == 0) {
                 $product = $objectManager->create('\Magento\Catalog\Model\Product')->load($item->getProductId());
@@ -936,7 +947,7 @@ class Feed implements FeedInterface
                         $orderItemBundle[$order_id][] = $row['product_id'];
                     }
                 }
-                $result[] = array($order->getData('increment_id'), $row['product_id'], $customerId, $row['qty'], $price, $dt->format('Y-m-d H:i:s'));
+                $result[] = array($order->getData('increment_id'), $row['product_id'], $customerId, $row['qty'], $price, $dt->format('Y-m-d H:i:sP'));
             }
 
         }

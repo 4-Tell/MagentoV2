@@ -18,7 +18,6 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
     const XML_PATH_CLIENT_ID = 'recommend/general_settings/client_id';
     const XML_PATH_MODE = 'recommend/general_settings/mode';
     const XML_PATH_MANUFACTURER = 'recommend/advanced_settings/manufacturer';
-    const XML_PATH_CURL_TIMEOUT = 'recommend/general_settings/curl_timeout';
     const XML_PATH_ADVANCED_GROUPPROD = 'recommend/advanced_settings/groupprod';
     const XML_PATH_ADVANCED_BUNDLEPROD = 'recommend/advanced_settings/bundleprod';
     const XML_PATH_ADVANCED_RESTRICT_ATTRIBUTE = 'recommend/advanced_settings/restrict/restrict_attribute';
@@ -728,5 +727,16 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
             return false;
 
         return true;
+    }
+
+    /**
+     * Get locale timezone
+     *
+     * @param array $storeIds
+     * @return array
+     */
+    public function getTimezone($storeIds)
+    {
+        return $this->_storesConfig->getStoresConfigByPath(\Magento\Config\Model\Config\Backend\Admin\Custom::XML_PATH_GENERAL_LOCALE_TIMEZONE);
     }
 }

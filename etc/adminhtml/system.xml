@@ -45,11 +45,6 @@
                     <tooltip>Set to Live for production and Stage for testing.</tooltip>
                     <source_model>FourTell\Recommend\Model\Config\Source\Mode</source_model>
                 </field>
-                <field id="curl_timeout" translate="label tooltip" type="text" sortOrder="25" showInDefault="1"
-                       showInWebsite="1" showInStore="0">
-                    <label>Timeout in Seconds</label>
-                    <tooltip>Timeout in seconds to wait for recommendations</tooltip>
-                </field>
                 <field id="ssl_required" translate="label tooltip" type="select" sortOrder="30" showInDefault="1"
                        showInWebsite="0" showInStore="0">
                     <label>SSL Required for Data Access</label>
