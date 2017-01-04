@@ -88,7 +88,9 @@ class Success extends \Magento\Framework\View\Element\Template
         $items = $order->getAllItems();
         $details = [];
         foreach ($items as $item) {
-            $details[] = $this->_helper->productTypeRules('tracking',$item);
+            $detail = $this->_helper->productTypeRules('tracking',$item);
+            if (is_array($detail))
+                $details[] = array($detail['product_id'],$detail['qty'],$detail['price']);
         }
         return \Zend_Json::encode($details);
     }

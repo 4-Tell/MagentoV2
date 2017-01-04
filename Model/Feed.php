@@ -897,20 +897,8 @@ class Feed implements FeedInterface
             // Get customer ID of use who placed the order
             // if the customer was an account
             $customerId = $order->getData('customer_id');
-            if ($customerId == '') {
-                // Get email of use who placed the order if
-                // the order was placed with guest checkout
+            if (empty($customerId)) {
                 $customerId = $order->getData('customer_email');
-                if ($customerId == '') {
-                    // Get order ID as last resort to use
-                    // as the customer ID
-                    $customerId = $order->getData('increment_id');
-                } else {
-                    // If we ended up with an email address then
-                    // make into a hash so we are not transmitting
-                    // or storing readable personal information
-                    $customerId = md5($customerId);
-                }
             }
 
             // Get the data for the current item
