@@ -19,7 +19,6 @@ class Thumbnail implements \Magento\Framework\Option\ArrayInterface
      */
     public function toOptionArray()
     {
-        $result = [];
         $positions = [
             array('value' => '1', 'label' => __('1')),
             array('value' => '2', 'label' => __('2')),
@@ -42,22 +41,23 @@ class Thumbnail implements \Magento\Framework\Option\ArrayInterface
             array('value' => '19', 'label' => __('19')),
             array('value' => '20', 'label' => __('20'))
         ];
-        $sort = ['thumbnail', 'small_image', 'image'];
+        $sort = ['image', 'small_image', 'thumbnail'];
         $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
         $attributes = $objectManager->create('\Magento\Eav\Model\ResourceModel\Entity\Attribute\Collection');
         $attributes->addFieldToFilter(\Magento\Eav\Model\Entity\Attribute\Set::KEY_ENTITY_TYPE_ID, 4);
         $attributes->addFieldToFilter('attribute_code', array('in' => $this->getMediaAttributeCodes()))->load();
         $mediaAttributes = array();
         foreach($attributes->getItems() as $attribute){
-            $mediaAttributes[$attribute->getAttributeCode()] = $attribute->getFrontendLabel();
+            if (!in_array($attribute->getAttributeCode(),$sort))
+                array_unshift($positions, array('value' => $attribute->getAttributeCode(), 'label' => $attribute->getFrontendLabel()));
+            else
+                $mediaAttributes[$attribute->getAttributeCode()] = $attribute->getFrontendLabel();
         }
         foreach ($sort as $key){
             if (isset($mediaAttributes[$key]))
-                $result[$key] = $mediaAttributes[$key];
+                array_unshift($positions, array('value' => $key, 'label' => $mediaAttributes[$key]));
         }
-        $result = array_merge($result,$mediaAttributes);
-        $result = $result + $positions;
-        return $result;
+        return $positions;
     }
 
     /**

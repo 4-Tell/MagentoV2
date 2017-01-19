@@ -91,6 +91,13 @@
                     <label>Image Source</label>
                     <source_model>FourTell\Recommend\Model\Config\Source\Thumbnail</source_model>
                     <tooltip>Choose the thumbnail image for the recommendations.</tooltip>
+                    <can_be_empty>1</can_be_empty>
+                </field>
+                <field id="alternative_views" translate="label tooltip" type="multiselect" sortOrder="33" showInDefault="1"
+                       showInWebsite="1" showInStore="0">
+                    <label>Alternative Views</label>
+                    <source_model>FourTell\Recommend\Model\Config\Source\Thumbnail</source_model>
+                    <tooltip>Select images to show when the mouse hovers over a recommendation.</tooltip>
                 </field>
                 <field id="js_loader" translate="label tooltip" type="textarea" sortOrder="35" showInDefault="1"
                        showInWebsite="0" showInStore="0">

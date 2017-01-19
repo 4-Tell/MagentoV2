@@ -341,7 +341,7 @@ class Feed implements FeedInterface
                 break;
 
             default:
-                $this->resultDataHead = array('ProductID', 'Name', 'CategoryIDs', 'ManufacturerID', 'Price', 'SalePrice', 'PromotionPrice', 'ListPrice', 'Cost', 'MinBundlePrice', 'MaxBundlePrice', 'Inventory', 'Visible', 'Link', 'ImageLink', 'Ratings', 'StandardCode', 'ParentID', 'ProductType', 'Visibility', 'StockAvailability');
+                $this->resultDataHead = array('ProductID', 'Name', 'CategoryIDs', 'ManufacturerID', 'Price', 'SalePrice', 'PromotionPrice', 'ListPrice', 'Cost', 'MinBundlePrice', 'MaxBundlePrice', 'Inventory', 'Visible', 'Link', 'ImageLink', 'AltViewImageLinks', 'Ratings', 'StandardCode', 'ParentID', 'ProductType', 'Visibility', 'StockAvailability');
 
                 break;
         }
@@ -490,7 +490,14 @@ class Feed implements FeedInterface
             $productUrl = $product->getUrlModel()->getUrl($product);
             if (is_null($productUrl))
                 $productUrl = '';
-            $image = $this->_helper->createImageCache($product);
+
+
+            $images = $this->_helper->createImageCache($product);
+            $thumbnailNumber = $this->_helper->getThumbnailNumber($storeIds[0]);
+            $image = $images[$storeIds[0]][$thumbnailNumber];
+            unset($images[$storeIds[0]][$thumbnailNumber]);
+            $alternativeImages = implode(',',$images[$storeIds[0]]);
+
             $visibility = $product->getVisibility();
             $visibilityOptions = \Magento\Catalog\Model\Product\Visibility::getOptionArray();
             $visible = 1;
@@ -687,6 +694,7 @@ class Feed implements FeedInterface
                 (string)$visible,
                 $productUrl,
                 $image,
+                $alternativeImages,
                 (string)$avg,
                 $product->getSku(),
                 $parentIds,

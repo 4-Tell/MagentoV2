@@ -29,6 +29,7 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
     const XML_PATH_JS_CODE = 'recommend/display_recommendation/js_loader';
     const XML_PATH_IMAGE_SIZE = 'recommend/display_recommendation/image_size';
     const XML_PATH_IMAGE_THUMB_NUM = 'recommend/display_recommendation/thumbnail_number';
+    const XML_PATH_ALTERNATIVE_VIEWS = 'recommend/display_recommendation/alternative_views';
     const XML_PATH_HIDE_RELATED = 'recommend/display_recommendation/hide_magento_related';
     const XML_PATH_HIDE_UPSELL = 'recommend/display_recommendation/hide_magento_upsell';
     const XML_PATH_HIDE_CROSSSEL = 'recommend/display_recommendation/hide_magento_crosssell';
@@ -538,29 +539,36 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
         $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
         $storeIds = $product->getStoreIds();
         $storeIds[] = \Magento\Store\Model\Store::DEFAULT_STORE_ID;
+        $alternativeImages = [];
         foreach ($storeIds as $storeId) {
             $product = $objectManager->create('\Magento\Catalog\Model\Product')->setStoreId($storeId)->load($product->getId());
-            $thumbnail_number = $this->getThumbnailNumber($storeId);
+            $alternativeViews = $this->getAlternativeViews($storeId);
+            $alternativeViews = explode(',',$alternativeViews);
+            $alternativeViews[] = $this->getThumbnailNumber($storeId);
             $imageSize = $this->getImageSize($storeId);
-            $imageFile = $this->imageHelper->getPlaceholder();
-            if ( (int)$thumbnail_number > 0 and  (int)$thumbnail_number < 21 ){
-                $mediaGallery = $product->getMediaGalleryImages();
-                if ($mediaGallery instanceof \Magento\Framework\Data\Collection) {
-                    foreach ($mediaGallery as $image) {
-                        if (($image->getPosition() == $thumbnail_number) && ($image->getMediaType() == 'image')) {
-                            $imageFile = $image->getFile();
+            //$imageFile = $this->imageHelper->getPlaceholder();
+            $imageFile = '';
+            foreach($alternativeViews as $thumbnail_number) {
+                if ((int)$thumbnail_number > 0 and (int)$thumbnail_number < 21) {
+                    $mediaGallery = $product->getMediaGalleryImages();
+                    if ($mediaGallery instanceof \Magento\Framework\Data\Collection) {
+                        foreach ($mediaGallery as $image) {
+                            if (($image->getPosition() == $thumbnail_number) && ($image->getMediaType() == 'image')) {
+                                $imageFile = $image->getFile();
+                            }
                         }
                     }
+                } else {
+                    $imageFile = $product->getData($thumbnail_number);
                 }
+                if (!empty($imageFile))
+                    $alternativeImages[$storeId][$thumbnail_number] =
+                        $this->imageHelper->init($product, 'recommend_product_image_listing', $imageSize)
+                        ->setImageFile($imageFile)
+                        ->getUrl();
             }
-            else {
-                $imageFile = $product->getData($thumbnail_number);
-            }
-            $url = $this->imageHelper->init($product, 'recommend_product_image_listing', $imageSize)
-                ->setImageFile($imageFile)
-                ->getUrl();
         }
-        return $url;
+        return $alternativeImages;
     }
 
     /**
@@ -572,7 +580,6 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
      */
     public function getImageUrlByPos($product, $storeId, $pos)
     {
-        $thumbnail_number = $this->getThumbnailNumber($storeId);
         $imageSize = $this->getImageSize($storeId);
         $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
         $product = $objectManager->create('\Magento\Catalog\Model\Product')->setStoreId($storeId)->load($product->getId());
@@ -661,6 +668,18 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
     public function getThumbnailNumber($storeId)
     {
         return $this->getConfig(self::XML_PATH_IMAGE_THUMB_NUM, $storeId);
+    }
+
+    /**
+     *
+     * Alternative Views
+     *
+     * @param $storeId
+     * @return int
+     */
+    public function getAlternativeViews($storeId)
+    {
+        return $this->getConfig(self::XML_PATH_ALTERNATIVE_VIEWS, $storeId);
     }
 
     /**
