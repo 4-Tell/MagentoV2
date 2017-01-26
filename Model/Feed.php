@@ -341,7 +341,10 @@ class Feed implements FeedInterface
                 break;
 
             default:
-                $this->resultDataHead = array('ProductID', 'Name', 'CategoryIDs', 'ManufacturerID', 'Price', 'SalePrice', 'PromotionPrice', 'ListPrice', 'Cost', 'MinBundlePrice', 'MaxBundlePrice', 'Inventory', 'Visible', 'Link', 'ImageLink', 'AltViewImageLinks', 'Ratings', 'StandardCode', 'ParentID', 'ProductType', 'Visibility', 'StockAvailability');
+                $this->resultDataHead = array('ProductID', 'Name', 'CategoryIDs', 'ManufacturerID', 'Price', 'SalePrice',
+                    'PromotionPrice', 'ListPrice', 'Cost', 'MinBundlePrice', 'MaxBundlePrice', 'Inventory', 'Visible',
+                    'Link', 'ImageLink', 'AltViewImageLinks', 'Ratings', 'StandardCode', 'ParentID', 'ProductType',
+                    'Visibility', 'Active', 'StockAvailability', 'ActivatedDate', 'ModifiedDate');
 
                 break;
         }
@@ -501,9 +504,15 @@ class Feed implements FeedInterface
             $visibility = $product->getVisibility();
             $visibilityOptions = \Magento\Catalog\Model\Product\Visibility::getOptionArray();
             $visible = 1;
+            //Not Visible Individually
+            if ($visibility == 1)
+                $visible = 0;
+            $statusFlag = 1;
             $status = $product->getStatus();
-            if ($status == \Magento\Catalog\Model\Product\Attribute\Source\Status::STATUS_DISABLED)
+            if ($status == \Magento\Catalog\Model\Product\Attribute\Source\Status::STATUS_DISABLED) {
                 $qty = 0;
+                $statusFlag = 0;
+            }
 
             if ($this->stockRegistry->getProductStockStatus($product->getId())) {
                 $stockAvailability = 'In Stock';
@@ -530,11 +539,6 @@ class Feed implements FeedInterface
             } else {
                 $specialPrice = '';
             }
-
-            if ($visibility == \Magento\Catalog\Model\Product\Visibility::VISIBILITY_NOT_VISIBLE ||
-                $status == \Magento\Catalog\Model\Product\Attribute\Source\Status::STATUS_DISABLED
-            )
-                $visible = 0;
 
             if ($product->getTypeId() == "simple") {
                 //No Grouped/Bundled Parent IDs in Catalog Feed for Simple Products if simple not visible individually
@@ -678,6 +682,12 @@ class Feed implements FeedInterface
                 $_minimalPrice = str_replace(",", "", number_format($_minimalPrice, 2));
                 $_maximalPrice = str_replace(",", "", number_format($_maximalPrice, 2));
             }
+
+            $zones = $this->_helper->getTimezone($storeIds);
+            $zone = $zones[$storeIds[0]];
+            $activatedAt = new \DateTime($product->getData('created_at'), new \DateTimeZone($zone));
+            $modifiedAt = new \DateTime($product->getData('updated_at'), new \DateTimeZone($zone));
+
             $resultData = array(
                 $productId,
                 $product->getName(),
@@ -700,7 +710,10 @@ class Feed implements FeedInterface
                 $parentIds,
                 $product->getTypeId(),
                 $visibilityOptions[$visibility],
-                $stockAvailability
+                (string)$statusFlag,
+                $stockAvailability,
+                $activatedAt->format('Y-m-d H:i:sP'),
+                $modifiedAt->format('Y-m-d H:i:sP')
             );
 
 
