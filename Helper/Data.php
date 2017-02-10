@@ -444,7 +444,7 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
         switch ($productTypeReal) {
             case 'configurable':
                 //Sales Feed
-                if ($callType == 'sales')
+                if ($callType == 'sales' || $callType == 'tracking')
                     $skipRow = true;
                 break;
             case 'grouped':
@@ -459,14 +459,14 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
             default:
                 if ($orderItem->getData('product_options')) {
                     $productOptions = $orderItem->getData('product_options');
-                    $parentIdArray = $configurableProductModel->getParentIdsByChild($productId);
-                    if (isset($parentIdArray[0])) {
-                        if (isset($productOptions['info_buyRequest']['product']))
-                            if ($productOptions['info_buyRequest']['product'] != $productId)
-                                if ($callType == 'tracking')
-                                    $skipRow = true;
-
-                    }
+//                    $parentIdArray = $configurableProductModel->getParentIdsByChild($productId);
+//                    if (isset($parentIdArray[0])) {
+//                        if (isset($productOptions['info_buyRequest']['product']))
+//                            if ($productOptions['info_buyRequest']['product'] != $productId)
+//                                if ($callType == 'tracking')
+//                                    $skipRow = true;
+//
+//                    }
 
                     $parentIdArray = $groupedProductModel->getParentIdsByChild($productId);
                     if (isset($parentIdArray[0])) {
@@ -500,7 +500,8 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
         $res = array(
             'product_id' => $productId,
             'qty' => strval(intval($qtyOrdered)),
-            'price' => $orderItem->getData('price')
+            'price' => $orderItem->getData('price'),
+            'qty_canceled' => strval(intval($orderItem->getData('qty_refunded')))
         );
         return $res;
     }

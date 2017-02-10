@@ -87,10 +87,23 @@ class Success extends \Magento\Framework\View\Element\Template
         $order = $this->_order->loadByIncrementId($incrementId);
         $items = $order->getAllItems();
         $details = [];
+        $orderItemConfigurable = [];
+        foreach ($items as $item) {
+            if ($item->getData('product_type') == 'configurable') {
+                $orderItemConfigurable[$item->getData('item_id')] = str_replace(",", "", number_format($item->getData('price'), 2));
+            }
+        }
         foreach ($items as $item) {
             $detail = $this->_helper->productTypeRules('tracking',$item);
-            if (is_array($detail))
-                $details[] = array($detail['product_id'],$detail['qty'],$detail['price']);
+            if (is_array($detail)) {
+                if($item->getData('product_type') == 'simple' && isset($orderItemConfigurable[$item->getData('parent_item_id')])){
+                    $price = $orderItemConfigurable[$item->getData('parent_item_id')];
+                }
+                else {
+                    $price = str_replace(",", "", number_format($detail['price'], 2));
+                }
+                $details[] = array($detail['product_id'], $detail['qty'], $price);
+            }
         }
         return \Zend_Json::encode($details);
     }

@@ -866,7 +866,7 @@ class Feed implements FeedInterface
     {
         $result = [];
         //Head
-        $result[] = array('OrderID', 'ProductID', 'CustomerID', 'Quantity', 'ItemPrice', 'Date');
+        $result[] = array('OrderID', 'ProductID', 'CustomerID', 'Quantity', 'CanceledQuantity', 'Price', 'Date');
         $clientAlias = $this->_helper->ClientAlias;
         $storeIds = $this->_helper->map($clientAlias);
         if (empty($storeIds))
@@ -895,20 +895,17 @@ class Feed implements FeedInterface
             $collection->addFieldToFilter('created_at', $filterDateRange);
         }
 
-        if ($this->_helper->DataGroup == 'Returns') {
-            $sales_order_table = $this->_helper->getTableName('sales_order');
-            $collection->getSelect()->joinLeft(array('so' => $sales_order_table), 'main_table.order_id = so.entity_id', array('so.status'));
-            $collection->getSelect()->where("qty_refunded > 0 || status='canceled'");
-        }
-
-
+//        if ($this->_helper->DataGroup == 'Returns') {
+//            $sales_order_table = $this->_helper->getTableName('sales_order');
+//            $collection->getSelect()->joinLeft(array('so' => $sales_order_table), 'main_table.order_id = so.entity_id', array('so.status'));
+//            $collection->getSelect()->where("qty_refunded > 0 || status='canceled'");
+//        }
         $orderItemBundle = array();
         $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
 
         // Loop through the collection data
         foreach ($collection as $item) {
             $order = $item->getOrder();
-
             //Check order existing
             if (!$order->getId()) {
                 //Mage::helper('recommend')->log('Order not longer exist.', 'query');
@@ -941,13 +938,17 @@ class Feed implements FeedInterface
 
             $price = $item->getPrice();
             if ($price == 0) {
-                $product = $objectManager->create('\Magento\Catalog\Model\Product')->load($item->getProductId());
-                $price = $product->getPrice();
+                if ($item->getData('product_type') == 'simple'){
+                    if ($parentItemId = $item->getData('parent_item_id')){
+                        $parentItem = $objectManager->create('Magento\Sales\Model\Order\Item')->load($parentItemId);
+                        $price = $parentItem->getPrice();
+                    }
+                }
+
             }
             $price = str_replace(",", "", number_format($price, 2));
             // Need to fix method
             $row = $this->_helper->productTypeRules('sales', $item, $storeIds);
-
             if ($row) {
                 if ($product_type == 'grouped') {
                     if (isset($orderItemBundle[$order_id]) && in_array($row['product_id'], $orderItemBundle[$order_id])) {
@@ -956,9 +957,14 @@ class Feed implements FeedInterface
                         $orderItemBundle[$order_id][] = $row['product_id'];
                     }
                 }
-                $result[] = array($order->getData('increment_id'), $row['product_id'], $customerId, $row['qty'], $price, $dt->format('Y-m-d H:i:sP'));
+                if ($order->getData('status') == 'canceled') {
+                    if ($row['qty'] != '0')
+                        $row['qty_canceled'] = '-'.$row['qty'];
+                    else
+                        $row['qty_canceled'] = 0;
+                }
+                $result[] = array($order->getData('increment_id'), $row['product_id'], $customerId, $row['qty'], $row['qty_canceled'], $price, $dt->format('Y-m-d H:i:sP'));
             }
-
         }
 
         //ResultType - Count
