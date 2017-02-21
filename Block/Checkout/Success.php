@@ -125,6 +125,13 @@ class Success extends \Magento\Framework\View\Element\Template
      */
     public function getCurrentCustomerId()
     {
-        return $this->_customerSession->getCustomerId();
+        $customerId = $this->_customerSession->getCustomerId();
+        if (is_null($customerId)){
+            $incrementId = $this->_checkoutSession->getLastRealOrderId();
+            $order = $this->_order->loadByIncrementId($incrementId);
+            $customerId = $order->getData('customer_email');
+        }
+
+        return $customerId;
     }
 }
