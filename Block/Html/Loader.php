@@ -189,13 +189,25 @@ class Loader extends \Magento\Framework\View\Element\Template
         }
 
         $customerSession = $this->_objectManager->get('\Magento\Customer\Model\Session');
-        $data['CustomerId'] = $customerSession->getCustomerId();
-        $data['CartIDs'] = implode(",", $this->productTypeRulesCartProductIds());
+        if ($customerSession->getCustomerId())
+            $data['CustomerId'] = $customerSession->getCustomerId();
+        else
+            $data['CustomerId'] ='';
+
+        $cartProducts = $this->productTypeRulesCartProductIds();
+        if(!empty($cartProducts['productIds']))
+            $data['CartIDs'] = implode(",", $cartProducts['productIds']);
+        else
+            $data['CartIDs'] = '';
+
+        if(!empty($cartProducts['productSKUs']))
+            $data['CartSKUs'] = implode(",", $cartProducts['productSKUs']);
+        else
+            $data['CartSKUs']='';
 
         $res = '';
         foreach ($data as $key => $value) {
-            if (!empty($value))
-                $res .= "window._4TellBoost.$key='$value'; ";
+            $res .= "window._4TellBoost.$key='$value'; ";
         }
         if (!empty($res))
             $res = '<script type="text/javascript">' .$res. '</script>
@@ -212,6 +224,7 @@ class Loader extends \Magento\Framework\View\Element\Template
     {
         $checkoutSession = $this->_objectManager->get('\Magento\Checkout\Model\Session');
         $productIds = array();
+        $productSKUs = array();
         $cartItems = $checkoutSession->getQuote()->getAllVisibleItems();
         if ($cartItems) {
             foreach ($cartItems as $cartItem) {
@@ -220,6 +233,7 @@ class Loader extends \Magento\Framework\View\Element\Template
                 $product = $cartItem->getProduct();
                 $productType = $product->getTypeId();
                 $productId = $product->getData('entity_id');
+                $productSKUs[$productId] = $product->getData('sku');
                 if ($cartItem->getOptionByCode('info_buyRequest')) {
                     $infoBuyRequest = unserialize($cartItem->getOptionByCode('info_buyRequest')->getValue());
                     if (isset($infoBuyRequest['super_product_config']['product_id'])) {
@@ -269,6 +283,12 @@ class Loader extends \Magento\Framework\View\Element\Template
         if (!empty($productIds))
             $productIds = array_unique($productIds);
 
-        return $productIds;
+        $res = array();
+        foreach($productIds as $productId){
+            $res['productIds'][] = $productId;
+            $res['productSKUs'][] = $productSKUs[$productId];
+        }
+
+        return $res;
     }
 }

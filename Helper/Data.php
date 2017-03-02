@@ -496,12 +496,13 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
         if ($skipRow)
             return false;
 
-        $qtyOrdered = $orderItem->getData('qty_ordered');
+        $qty = $orderItem->getData('qty_ordered') - ($orderItem->getData('qty_canceled')+$orderItem->getData('qty_refunded'));
+        if ($orderItem->getData('status') == 'canceled')
+            $qty =0;
+
         $res = array(
             'product_id' => $productId,
-            'qty' => strval(intval($qtyOrdered)),
-            'price' => $orderItem->getData('price'),
-            'qty_canceled' => strval(intval($orderItem->getData('qty_refunded')))
+            'qty' => strval($qty)
         );
         return $res;
     }

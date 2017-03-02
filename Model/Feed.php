@@ -866,7 +866,7 @@ class Feed implements FeedInterface
     {
         $result = [];
         //Head
-        $result[] = array('OrderID', 'ProductID', 'CustomerID', 'Quantity', 'CanceledQuantity', 'Price', 'Date');
+        $result[] = array('OrderID', 'ProductID', 'CustomerID', 'Quantity', 'ItemPrice', 'FullPrice', 'Date', 'ModifiedDate');
         $clientAlias = $this->_helper->ClientAlias;
         $storeIds = $this->_helper->map($clientAlias);
         if (empty($storeIds))
@@ -892,7 +892,9 @@ class Feed implements FeedInterface
                 $plusOneDay = $this->_helper->plusOneDay($dateRange[1], $format = 'Y-m-d');
                 $filterDateRange['to'] = $plusOneDay;
             }
-            $collection->addFieldToFilter('created_at', $filterDateRange);
+            $collection->getSelect()
+                ->where("(main_table.created_at >= '" . $filterDateRange['from'] . "' && main_table.created_at <= '" . $filterDateRange['to'] . "') "
+                    . " || (main_table.updated_at >= '" . $filterDateRange['from'] . "' && main_table.updated_at <= '" . $filterDateRange['to'] . "') ");
         }
 
 //        if ($this->_helper->DataGroup == 'Returns') {
@@ -902,6 +904,29 @@ class Feed implements FeedInterface
 //        }
         $orderItemBundle = array();
         $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+
+        $orderItemGrouped = array();
+        // Loop through the collection data
+        $groupedPrice = array();
+        foreach ($collection as $item) {
+            $productType = $item->getData('product_type');
+            if (($productType == 'grouped') && $this->_helper->getConfig(\FourTell\Recommend\Helper\Data::XML_PATH_ADVANCED_GROUPPROD, is_null($storeIds) ? $storeIds : $storeIds[0])) {
+                if ($item->getData('product_options')) {
+                    $productOptions = unserialize($item->getData('product_options'));
+                    if (isset($productOptions['super_product_config']['product_id'])) {
+                        if(isset($groupedPrice[$item->getOrderId()][$productOptions['super_product_config']['product_id']])) {
+                            $groupedPrice[$item->getOrderId()][$productOptions['super_product_config']['product_id']]['price'] += $item->getRowTotal();
+                            $groupedPrice[$item->getOrderId()][$productOptions['super_product_config']['product_id']]['original_price'] += $item->getData('original_price') * $item->getQtyOrdered();
+                        }
+                        else {
+                            $groupedPrice[$item->getOrderId()][$productOptions['super_product_config']['product_id']]['price'] = $item->getRowTotal();
+                            $groupedPrice[$item->getOrderId()][$productOptions['super_product_config']['product_id']]['original_price'] = $item->getData('original_price') * $item->getQtyOrdered();
+                        }
+                    }
+
+                }
+            }
+        }
 
         // Loop through the collection data
         foreach ($collection as $item) {
@@ -935,13 +960,18 @@ class Feed implements FeedInterface
             $zones = $this->_helper->getTimezone($storeIds);
             $zone = $zones[$item->getData('store_id')];
             $dt = new \DateTime($item->getData('created_at'), new \DateTimeZone($zone));
+            $createdAt = $dt->format('Y-m-d H:i:sP');
+            $dtUpdated = new \DateTime($item->getData('updated_at'), new \DateTimeZone($zone));
+            $updatedAt = $dt->format('Y-m-d H:i:sP');
 
             $price = $item->getPrice();
+            $originPrice = $item->getData('original_price');
             if ($price == 0) {
                 if ($item->getData('product_type') == 'simple'){
                     if ($parentItemId = $item->getData('parent_item_id')){
                         $parentItem = $objectManager->create('Magento\Sales\Model\Order\Item')->load($parentItemId);
                         $price = $parentItem->getPrice();
+                        $originPrice = $parentItem->getData('original_price');
                     }
                 }
 
@@ -949,21 +979,27 @@ class Feed implements FeedInterface
             $price = str_replace(",", "", number_format($price, 2));
             // Need to fix method
             $row = $this->_helper->productTypeRules('sales', $item, $storeIds);
+            $qty = $row['qty'];
             if ($row) {
                 if ($product_type == 'grouped') {
-                    if (isset($orderItemBundle[$order_id]) && in_array($row['product_id'], $orderItemBundle[$order_id])) {
+                    if (isset($orderItemGrouped[$item->getOrderId()]) && in_array($row['product_id'], $orderItemGrouped[$item->getOrderId()])) {
                         continue;
                     } else {
-                        $orderItemBundle[$order_id][] = $row['product_id'];
+                        if(isset($groupedPrice[$item->getOrderId()][$row['product_id']])) {
+                            $price = $groupedPrice[$item->getOrderId()][$row['product_id']]['price'];
+                            $originPrice = $groupedPrice[$item->getOrderId()][$row['product_id']]['original_price'];
+                        }
+
+                        $orderItemGrouped[$item->getOrderId()][] = $row['product_id'];
+                        if ($this->_helper->getConfig(\FourTell\Recommend\Helper\Data::XML_PATH_ADVANCED_GROUPPROD, is_null($storeIds) ? $storeIds : $storeIds[0])
+                            && ($item->getData('status') != 'canceled'))
+                            $qty = '1';
                     }
                 }
-                if ($order->getData('status') == 'canceled') {
-                    if ($row['qty'] != '0')
-                        $row['qty_canceled'] = '-'.$row['qty'];
-                    else
-                        $row['qty_canceled'] = 0;
-                }
-                $result[] = array($order->getData('increment_id'), $row['product_id'], $customerId, $row['qty'], $row['qty_canceled'], $price, $dt->format('Y-m-d H:i:sP'));
+                $price = str_replace(",", "", number_format($price, 2));
+                $originPrice = str_replace(",", "", number_format($originPrice, 2));
+                $result[] = array($order->getData('increment_id'), $row['product_id'], $customerId, $qty, $price, $originPrice, $createdAt, $updatedAt);
+                //$row['qty'], $row['qty_canceled'], $price, $dt->format('Y-m-d H:i:sP'));
             }
         }
 
