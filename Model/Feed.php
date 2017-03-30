@@ -496,10 +496,49 @@ class Feed implements FeedInterface
 
 
             $images = $this->_helper->createImageCache($product);
+            $this->_logger->debug('$images',$images);
             $thumbnailNumber = $this->_helper->getThumbnailNumber($storeIds[0]);
-            $image = $images[$storeIds[0]][$thumbnailNumber];
-            unset($images[$storeIds[0]][$thumbnailNumber]);
-            $alternativeImages = implode(',',$images[$storeIds[0]]);
+
+            foreach ($storeIds as $storeId){
+                if (isset($images[$storeId][$thumbnailNumber])) {
+                    $image = $images[$storeId][$thumbnailNumber];
+                    break;
+                    //unset($images[$storeIds[0]][$thumbnailNumber]);
+                }
+            }
+            if (isset($image)){
+                foreach ($storeIds as $storeId){
+                    if (isset($images[$storeId][$thumbnailNumber])) {
+                        unset($images[$storeId][$thumbnailNumber]);
+                    }
+                }
+            }
+            else
+                $image = '';
+
+            $alternativeImages = array();
+            foreach ($storeIds as $storeId){
+                if (isset($images[$storeId]))
+                    $alternativeImages = array_merge($alternativeImages, $images[$storeId]);
+            }
+            if (!empty($alternativeImages)) {
+                $alternativeImages = array_unique($alternativeImages);
+                $alternativeImages = implode(',',$alternativeImages);
+            }
+            else
+                $alternativeImages = '';
+
+//            if (isset($images[$storeIds[0]][$thumbnailNumber])) {
+//                $image = $images[$storeIds[0]][$thumbnailNumber];
+//                unset($images[$storeIds[0]][$thumbnailNumber]);
+//            }
+//            else
+//                $image = '';
+//
+//            if(isset($images[$storeIds[0]]))
+//                $alternativeImages = implode(',',$images[$storeIds[0]]);
+//            else
+//                $alternativeImages = '';
 
             $visibility = $product->getVisibility();
             $visibilityOptions = \Magento\Catalog\Model\Product\Visibility::getOptionArray();
@@ -572,11 +611,6 @@ class Feed implements FeedInterface
                 $avg = round($ratingPercent * 5 / 100);
             else
                 $avg = '';
-
-//            if ($product->getColor())
-//                $color = $product->getAttributeText('color');
-//            else
-//                $color = '';
 
             $extraFieldsValue = [];
             $extraFieldsSwatch = [];

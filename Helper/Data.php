@@ -545,18 +545,23 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
         foreach ($storeIds as $storeId) {
             $product = $objectManager->create('\Magento\Catalog\Model\Product')->setStoreId($storeId)->load($product->getId());
             $alternativeViews = $this->getAlternativeViews($storeId);
-            $alternativeViews = explode(',',$alternativeViews);
-            $alternativeViews[] = $this->getThumbnailNumber($storeId);
+            if (!empty($alternativeViews))
+                $alternativeViews = explode(',',$alternativeViews);
+            if (!empty($this->getThumbnailNumber($storeId)))
+                $alternativeViews[] = $this->getThumbnailNumber($storeId);
+            if (empty($alternativeViews))
+                continue;
             $imageSize = $this->getImageSize($storeId);
             //$imageFile = $this->imageHelper->getPlaceholder();
-            $imageFile = '';
             foreach($alternativeViews as $thumbnail_number) {
+                $imageFile = '';
                 if ((int)$thumbnail_number > 0 and (int)$thumbnail_number < 21) {
                     $mediaGallery = $product->getMediaGalleryImages();
                     if ($mediaGallery instanceof \Magento\Framework\Data\Collection) {
                         foreach ($mediaGallery as $image) {
                             if (($image->getPosition() == $thumbnail_number) && ($image->getMediaType() == 'image')) {
                                 $imageFile = $image->getFile();
+                                break;
                             }
                         }
                     }
