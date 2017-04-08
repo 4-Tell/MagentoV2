@@ -20,20 +20,40 @@ class Loader extends \Magento\Framework\View\Element\Template
     protected $_objectManager;
 
     /**
+     * Catalog product model
+     *
+     * @var \Magento\Catalog\Api\ProductRepositoryInterface
+     */
+    protected $productRepository;
+
+    /**
+     * Catalog catgory model
+     *
+     * @var \Magento\Catalog\Api\CategoryRepositoryInterface
+     */
+    protected $categoryRepository;
+
+    /**
      * Constructor
      *
      * @param \Magento\Framework\View\Element\Template\Context $context
      * @param \Magento\Framework\ObjectManagerInterface $objectManager
+     * @param \Magento\Catalog\Api\ProductRepositoryInterface $productRepository
+     * @param \Magento\Catalog\Api\CategoryRepositoryInterface $categoryRepository
      * @param array $data
      */
     public function __construct(
         \Magento\Framework\View\Element\Template\Context $context,
         \Magento\Framework\ObjectManagerInterface $objectManager,
+        \Magento\Catalog\Api\ProductRepositoryInterface $productRepository,
+        \Magento\Catalog\Api\CategoryRepositoryInterface $categoryRepository,
         array $data = []
     )
     {
         parent::__construct($context, $data);
         $this->_objectManager = $objectManager;
+        $this->productRepository = $productRepository;
+        $this->categoryRepository = $categoryRepository;
     }
 
     /**
@@ -165,27 +185,26 @@ class Loader extends \Magento\Framework\View\Element\Template
     public function getExtraData()
     {
         $coreRegistry = $this->_objectManager->get('\Magento\Framework\Registry');
+
+        $categoryId = (int)$this->getRequest()->getParam('category', false);
+        $productId = (int)$this->getRequest()->getParam('id');
         $data = [];
-        switch ($this->_request->getFullActionName()) {
-            // Check for category pages
-            case 'catalog_category_view':
-                $currentCategory = $coreRegistry->registry('current_category');
-                if ($currentCategory instanceof \Magento\Catalog\Model\Category) {
-                    $data['CategoryId'] = $currentCategory->getId();
-                }
-                break;
 
-            // Product Page
-            case 'catalog_product_view':
-                $currentProduct = $coreRegistry->registry('current_product');
-                if ($currentProduct instanceof \Magento\Catalog\Model\Product) {
-                    $data['ProductIDs'] = $this->getProductIds($currentProduct);
-                    $data['ProductSKU'] = $currentProduct->getSku();
-                }
-                break;
+        if ($categoryId) {
+            $currentCategory = $this->categoryRepository->get($categoryId);
+            if ($currentCategory instanceof \Magento\Catalog\Model\Category) {
+                $data['CategoryId'] = $currentCategory->getId();
+            }
+        }
 
-            default:
-                break;
+        // Product Page
+        if ($productId) {
+            $product = $this->productRepository->getById($productId);
+            if (!$product->isVisibleInCatalog() || !$product->isVisibleInSiteVisibility()) {
+                throw new NoSuchEntityException();
+            }
+                $data['ProductIDs'] = $this->getProductIds($product);
+                $data['ProductSKU'] = $product->getSku();
         }
 
         $customerSession = $this->_objectManager->get('\Magento\Customer\Model\Session');
@@ -210,8 +229,7 @@ class Loader extends \Magento\Framework\View\Element\Template
             $res .= "window._4TellBoost.$key='$value'; ";
         }
         if (!empty($res))
-            $res = '<script type="text/javascript">' .$res. '</script>
-            <!--4-Tell Recommendations End-->';
+            $res = '<!--4-Tell Recommendations Start--><script type="text/javascript">' .$res. '</script><!--4-Tell Recommendations End-->';
         return $res;
     }
 

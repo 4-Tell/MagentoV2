@@ -9,7 +9,8 @@
     <body>
         <!--<block name="require.js" class="Magento\Framework\View\Element\Template" template="Magento_Theme::page/js/require_js.phtml" />-->
         <referenceContainer name="after.body.start">
-            <block class="FourTell\Recommend\Block\Html\Loader" cacheable="false" name="recommend.loader" template="FourTell_Recommend::page/loader.phtml"/>
+            <block class="FourTell\Recommend\Block\Html\Loader" name="recommend.loader" template="FourTell_Recommend::page/loader.phtml"/>
+            <block class="FourTell\Recommend\Block\Html\Variables" name="recommend_variables" template="FourTell_Recommend::variables.phtml" />
         </referenceContainer>
     </body>
 </page>

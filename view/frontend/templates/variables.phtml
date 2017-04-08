@@ -1,0 +1,19 @@
+<?php
+/**
+ * 4-Tell Product Recommendations
+ * Copyright © 2015 4-Tell, Inc. All rights reserved.
+ */
+?>
+
+<div id="recommend-variables-container" data-role="recommend-variables"></div>
+<?php echo $block->getChildHtml(); ?>
+
+<script type="text/x-magento-init">
+    {
+        "*": {
+            "FourTell_Recommend/js/process-variables": {
+                "productVariablesUrl": "<?php /* @escapeNotVerified */ echo $block->getVariablesUrl(); ?>"
+            }
+        }
+    }
+</script>
