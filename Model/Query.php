@@ -8,6 +8,7 @@ namespace FourTell\Recommend\Model;
 
 use Magento\Framework\App\ResourceConnection;
 
+
 class Query //extends \Magento\Framework\Model\AbstractModel
 {
     /**
@@ -86,5 +87,34 @@ class Query //extends \Magento\Framework\Model\AbstractModel
         //->order('sort_order ' . Varien_Db_Select::SQL_ASC);
         $data = $connection->fetchAll($select);
         return $data;
+    }
+
+    /**
+     * Retrieve array of related bundle product ids by selection product id(s)
+     * Fix for //Magento\Bundle\Model\ResourceModel\Selection
+     * @param int|array $childId
+     * @return array
+     */
+    public function getParentIdsByChild($childId)
+    {
+        $connection = $this->_getConnection();
+        $mainTable = $this->_resource->getTableName('catalog_product_bundle_selection');
+        $productEntityTable = $this->_resource->getTableName('catalog_product_entity');
+
+        $select = $connection->select()->distinct(
+            true
+        )->from(
+            $mainTable,
+            ''
+        )->join(
+            ['e' => $productEntityTable],
+            'e.entity_id = ' .  $mainTable . '.parent_product_id',
+            ['e.entity_id as parent_product_id']
+        )->where(
+            $mainTable.'.product_id IN(?)',
+            $childId
+        );
+        return $connection->fetchCol($select);
+
     }
 }

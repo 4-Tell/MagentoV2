@@ -87,22 +87,74 @@ class Success extends \Magento\Framework\View\Element\Template
         $order = $this->_order->loadByIncrementId($incrementId);
         $items = $order->getAllItems();
         $details = [];
+        $orderItemGrouped = [];
         $orderItemConfigurable = [];
+        $orderItemSkip = [];
+        $groupedPrice = [];
+
+        $configGroupprod = $this->_scopeConfig->getValue(
+            \FourTell\Recommend\Helper\Data::XML_PATH_ADVANCED_GROUPPROD,
+            \Magento\Store\Model\ScopeInterface::SCOPE_STORE
+        );
+
         foreach ($items as $item) {
             if ($item->getData('product_type') == 'configurable') {
                 $orderItemConfigurable[$item->getData('item_id')] = str_replace(",", "", number_format($item->getData('price'), 2));
             }
+            if ($item->getData('product_type') == 'grouped') {
+                if ($configGroupprod) {
+                    if ($productOptions = $item->getData('product_options')) {
+                        $groupedQty = $item->getData('qty_ordered') - ($item->getData('qty_canceled') + $item->getData('qty_refunded'));
+                        if ($item->getData('status') == 'canceled')
+                            $groupedQty =0;
+                        if (isset($productOptions['info_buyRequest']['super_product_config']['product_id'])) {
+                            $productGroupedId = $productOptions['info_buyRequest']['super_product_config']['product_id'];
+                            if (isset($orderItemGrouped[$productGroupedId])) {
+                                $orderItemGrouped[$productGroupedId] += $item->getPrice();
+                                $groupedPrice[$productGroupedId]['groupedQty'] += $groupedQty;
+                                if ($groupedQty > 0)
+                                    $groupedPrice[$productGroupedId]['count'] += 1;
+                            }
+                            else {
+                                $orderItemGrouped[$productGroupedId] = $item->getPrice();
+                                $groupedPrice[$productGroupedId]['groupedQty'] = $groupedQty;
+                                if ($groupedQty)
+                                    $groupedPrice[$productGroupedId]['count'] = 1;
+                                else
+                                    $groupedPrice[$productGroupedId]['count']= 0;
+                            }
+                        }
+                    }
+                }
+            }
+
         }
+
         foreach ($items as $item) {
+            $productType = $item->getData('product_type');
             $detail = $this->_helper->productTypeRules('tracking',$item);
-            if (is_array($detail)) {
-                if($item->getData('product_type') == 'simple' && isset($orderItemConfigurable[$item->getData('parent_item_id')])){
+            if ($detail) {
+                if ($productType == 'grouped') {
+                    if (isset($orderItemSkip) && in_array($detail['product_id'], $orderItemSkip)) {
+                        continue;
+                    } else {
+                        $orderItemSkip[] = $detail['product_id'];
+                    }
+                }
+                if($productType == 'simple' && isset($orderItemConfigurable[$item->getData('parent_item_id')])){
                     $price = $orderItemConfigurable[$item->getData('parent_item_id')];
                 }
-                else {
-                    $price = str_replace(",", "", number_format($detail['price'], 2));
+                elseif (isset($orderItemGrouped[$detail['product_id']])){
+                    $price = str_replace(",", "", number_format($orderItemGrouped[$detail['product_id']], 2));
+                    if($groupedPrice[$detail['product_id']]['count'])
+                        $row['qty'] = round($groupedPrice[$detail['product_id']]['groupedQty']/$groupedPrice[$detail['product_id']]['count']);
+                    else
+                        $row['qty'] = 0;
                 }
-                $details[] = array($detail['product_id'], $detail['qty'], $price);
+                else {
+                    $price = str_replace(",", "", number_format($item->getData('price'), 2));
+                }
+                $details[] = array($detail['sku'], $detail['qty'], $price);
             }
         }
         return \Zend_Json::encode($details);

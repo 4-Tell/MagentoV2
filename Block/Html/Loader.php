@@ -20,20 +20,43 @@ class Loader extends \Magento\Framework\View\Element\Template
     protected $_objectManager;
 
     /**
+     * @var \Magento\Catalog\Api\ProductRepositoryInterface
+     */
+    protected $productRepository;
+
+    /**
+     * @var \Magento\Catalog\Model\ResourceModel\Product
+     */
+    protected $productResource;
+
+    /**
+     * @var \Magento\Catalog\Api\CategoryRepositoryInterface
+     */
+    protected $categoryRepository;
+
+    /**
      * Constructor
      *
      * @param \Magento\Framework\View\Element\Template\Context $context
      * @param \Magento\Framework\ObjectManagerInterface $objectManager
+     * @param \Magento\Catalog\Api\ProductRepositoryInterface $productRepository
+     * @param \Magento\Catalog\Api\CategoryRepositoryInterface $categoryRepository
      * @param array $data
      */
     public function __construct(
         \Magento\Framework\View\Element\Template\Context $context,
         \Magento\Framework\ObjectManagerInterface $objectManager,
+        \Magento\Catalog\Api\ProductRepositoryInterface $productRepository,
+        \Magento\Catalog\Api\CategoryRepositoryInterface $categoryRepository,
+        \Magento\Catalog\Model\ResourceModel\Product $productResource,
         array $data = []
     )
     {
         parent::__construct($context, $data);
         $this->_objectManager = $objectManager;
+        $this->productRepository = $productRepository;
+        $this->categoryRepository = $categoryRepository;
+        $this->productResource = $productResource;
     }
 
     /**
@@ -154,7 +177,7 @@ class Loader extends \Magento\Framework\View\Element\Template
                 $productIds[] = $product->getId();
         }
 
-        return implode(",", $productIds);
+        return $productIds;
     }
 
     /**
@@ -165,27 +188,35 @@ class Loader extends \Magento\Framework\View\Element\Template
     public function getExtraData()
     {
         $coreRegistry = $this->_objectManager->get('\Magento\Framework\Registry');
+
+        $categoryId = (int)$this->getRequest()->getParam('category', false);
+        $productId = (int)$this->getRequest()->getParam('id');
         $data = [];
-        switch ($this->_request->getFullActionName()) {
-            // Check for category pages
-            case 'catalog_category_view':
-                $currentCategory = $coreRegistry->registry('current_category');
-                if ($currentCategory instanceof \Magento\Catalog\Model\Category) {
-                    $data['CategoryId'] = $currentCategory->getId();
-                }
-                break;
 
-            // Product Page
-            case 'catalog_product_view':
-                $currentProduct = $coreRegistry->registry('current_product');
-                if ($currentProduct instanceof \Magento\Catalog\Model\Product) {
-                    $data['ProductIDs'] = $this->getProductIds($currentProduct);
-                    $data['ProductSKU'] = $currentProduct->getSku();
-                }
-                break;
+        if ($categoryId) {
+            $currentCategory = $this->categoryRepository->get($categoryId);
+            if ($currentCategory instanceof \Magento\Catalog\Model\Category) {
+                $data['CategoryId'] = $currentCategory->getId();
+            }
+        }
 
-            default:
-                break;
+        // Product Page
+        if ($productId) {
+            $product = $this->productRepository->getById($productId);
+            if (!$product->isVisibleInCatalog() || !$product->isVisibleInSiteVisibility()) {
+                throw new NoSuchEntityException();
+            }
+            $productSkus = array();
+            $productIds = $this->getProductIds($product);
+            $skus = $this->productResource->getProductsSku($productIds);
+            foreach($productIds as $id){
+                foreach ($skus as $sku){
+                    if ($id == $sku['entity_id'])
+                        $productSkus[] = $sku['sku'];
+                }
+            }
+            $data['ProductIds'] = implode(",", $productIds);
+            $data['ProductSkus'] = implode(",", $productSkus);
         }
 
         $customerSession = $this->_objectManager->get('\Magento\Customer\Model\Session');
@@ -194,24 +225,20 @@ class Loader extends \Magento\Framework\View\Element\Template
         else
             $data['CustomerId'] ='';
 
-        $cartProducts = $this->productTypeRulesCartProductIds();
-        if(!empty($cartProducts['productIds']))
-            $data['CartIDs'] = implode(",", $cartProducts['productIds']);
-        else
-            $data['CartIDs'] = '';
-
-        if(!empty($cartProducts['productSKUs']))
-            $data['CartSKUs'] = implode(",", $cartProducts['productSKUs']);
-        else
-            $data['CartSKUs']='';
+        $cartData = $this->productTypeRulesCartProductIds();
+        foreach($cartData as $key => $val){
+            if (empty($val))
+                $data[$key] = '';
+            else
+                $data[$key] = implode(",", $val);
+        }
 
         $res = '';
         foreach ($data as $key => $value) {
             $res .= "window._4TellBoost.$key='$value'; ";
         }
         if (!empty($res))
-            $res = '<script type="text/javascript">' .$res. '</script>
-            <!--4-Tell Recommendations End-->';
+            $res = '<!--4-Tell Recommendations Start--><script type="text/javascript">' .$res. '</script><!--4-Tell Recommendations End-->';
         return $res;
     }
 
@@ -224,7 +251,10 @@ class Loader extends \Magento\Framework\View\Element\Template
     {
         $checkoutSession = $this->_objectManager->get('\Magento\Checkout\Model\Session');
         $productIds = array();
-        $productSKUs = array();
+        $productSkus = array();
+        $parentIds = array();
+        $parentSkus = array();
+
         $cartItems = $checkoutSession->getQuote()->getAllVisibleItems();
         if ($cartItems) {
             foreach ($cartItems as $cartItem) {
@@ -233,7 +263,6 @@ class Loader extends \Magento\Framework\View\Element\Template
                 $product = $cartItem->getProduct();
                 $productType = $product->getTypeId();
                 $productId = $product->getData('entity_id');
-                $productSKUs[$productId] = $product->getData('sku');
                 if ($cartItem->getOptionByCode('info_buyRequest')) {
                     $infoBuyRequest = unserialize($cartItem->getOptionByCode('info_buyRequest')->getValue());
                     if (isset($infoBuyRequest['super_product_config']['product_id'])) {
@@ -242,7 +271,11 @@ class Loader extends \Magento\Framework\View\Element\Template
                 }
                 switch ($productType) {
                     case 'configurable':
-                        $productIds[] = $productId;
+                        $parentIds[] = $productId;
+                        $qtyOptions = $cartItem->getData('qty_options');
+                        if($qtyOptions)
+                            $productIds = array_merge($productIds, array_keys($qtyOptions));
+
                         break;
                     case 'grouped':
                         if (!$this->_scopeConfig->getValue(
@@ -251,43 +284,69 @@ class Loader extends \Magento\Framework\View\Element\Template
                         )
                         ) {
                             $productIds[] = $productId;
+                            $parentIds[] = $productId;
                         } else {
                             if (isset($infoBuyRequest['super_product_config']['product_id'])) {
                                 $productId = $infoBuyRequest['super_product_config']['product_id'];
                                 $productIds[] = $productId;
+                                $parentIds[] = $productId;
                             }
                         }
 
                         break;
                     case 'bundle':
-                        if (!$this->_scopeConfig->getValue(
+                        if ($this->_scopeConfig->getValue(
                             \FourTell\Recommend\Helper\Data::XML_PATH_ADVANCED_BUNDLEPROD,
                             \Magento\Store\Model\ScopeInterface::SCOPE_STORE
                         )
                         ) {
                             $productIds[] = $productId;
+                            $parentIds[] = $productId;
                         } else {
-                            $qty_options = $cartItem->getData('qty_options');
-                            $productIds = array_merge($productIds, array_keys($qty_options));
+                            $qtyOptions = $cartItem->getData('qty_options');
+                            $productIds = array_merge($productIds, array_keys($qtyOptions));
+                            $parentIds = array_merge($parentIds, array_keys($qtyOptions));
                         }
                         break;
                     case 'simple':
                     case 'virtual':
                         $productIds[] = $productId;
+                        $parentIds[] = $productId;
                         break;
                     default:
                         $productIds[] = $productId;
+                        $parentIds[] = $productId;
                 }
             }
         }
-        if (!empty($productIds))
+        if (!empty($productIds)) {
             $productIds = array_unique($productIds);
-
-        $res = array();
-        foreach($productIds as $productId){
-            $res['productIds'][] = $productId;
-            $res['productSKUs'][] = $productSKUs[$productId];
+            $skus = $this->productResource->getProductsSku($productIds);
+            foreach($productIds as $id){
+                foreach ($skus as $sku){
+                    if ($id == $sku['entity_id'])
+                        $productSkus[] = $sku['sku'];
+                }
+            }
         }
+
+        if (!empty($parentIds)) {
+            $parentIds = array_unique($parentIds);
+            $skus = $this->productResource->getProductsSku($parentIds);
+            foreach($parentIds as $id){
+                foreach ($skus as $sku){
+                    if ($id == $sku['entity_id'])
+                        $parentSkus[] = $sku['sku'];
+                }
+            }
+        }
+
+        $res = array(
+            'CartIds' => $productIds,
+            'CartParentIds' => $parentIds,
+            'CartSkus' => $productSkus,
+            'CartParentSkus' => $parentSkus,
+        );
 
         return $res;
     }

@@ -129,11 +129,32 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
     protected $_productModel;
 
     /**
-     * Resource model
-     *
+     * @var \Magento\Catalog\Model\ResourceModel\Product
+     */
+    protected $productResource;
+
+
+    /**
      * @var \Magento\Catalog\Model\ResourceModel\Product\Gallery
      */
     protected $resourceModelCatalog;
+
+
+    /**
+     * @var \Magento\Bundle\Model\Product\Type
+     */
+    protected $bundleProductType;
+
+    /**
+     * @var \Magento\ConfigurableProduct\Model\Product\Type\Configurable
+     */
+    protected $configurableProduct;
+
+
+    /**
+     * @var \Magento\GroupedProduct\Model\Product\Type\Grouped
+     */
+    protected $groupedProduct;
 
     /**
      * Construct
@@ -171,7 +192,11 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
         \Magento\Reports\Model\Product\Index\Factory $indexFactory,
         \Magento\Customer\Model\Visitor $customerVisitor,
         \Magento\Catalog\Model\Product $productModel,
-        \Magento\Catalog\Model\ResourceModel\Product\Gallery $resourceModelCatalog
+        \Magento\Catalog\Model\ResourceModel\Product\Gallery $resourceModelCatalog,
+        \Magento\Catalog\Model\ResourceModel\Product $productResource,
+        \Magento\Bundle\Model\Product\Type $bundleProductType,
+        \Magento\ConfigurableProduct\Model\Product\Type\Configurable $configurableProduct,
+        \Magento\GroupedProduct\Model\Product\Type\Grouped $groupedProduct
     )
     {
         parent::__construct($context);
@@ -191,6 +216,10 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
         $this->_customerVisitor = $customerVisitor;
         $this->_productModel = $productModel;
         $this->resourceModelCatalog = $resourceModelCatalog;
+        $this->productResource = $productResource;
+        $this->bundleProductType = $bundleProductType;
+        $this->configurableProduct = $configurableProduct;
+        $this->groupedProduct = $groupedProduct;
     }
 
     /**
@@ -434,59 +463,36 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
     {
         $skipRow = false;
         $productId = $orderItem->getData('product_id');
-        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
-        //$product = $order_item->getProduct();
-        //$product_type_real = $product->getTypeID();
-        $productTypeReal = $orderItem->getData('product_type');
-        $configurableProductModel = $objectManager->get('\Magento\ConfigurableProduct\Model\Product\Type\Configurable');
-        $groupedProductModel = $objectManager->get('\Magento\GroupedProduct\Model\Product\Type\Grouped');
-        $bundleProductModel = $objectManager->get('Magento\Bundle\Model\Product\Type');
+        $productTypeReal = $orderItem->getProduct()->getTypeID();
+
         switch ($productTypeReal) {
             case 'configurable':
-                //Sales Feed
                 if ($callType == 'sales' || $callType == 'tracking')
                     $skipRow = true;
                 break;
             case 'grouped':
-                if (!$this->_storesConfig->getStoresConfigByPath(self::XML_PATH_ADVANCED_GROUPPROD))
+                if (!$this->getConfig(self::XML_PATH_ADVANCED_GROUPPROD, is_null($storeIds) ? $storeIds : $storeIds[0]))
                     $skipRow = true;
                 break;
             case 'bundle':
-                // Fix for feed alias
-                if (!$this->_storesConfig->getStoresConfigByPath(self::XML_PATH_ADVANCED_BUNDLEPROD))
+                if (!$this->getConfig(self::XML_PATH_ADVANCED_BUNDLEPROD, is_null($storeIds) ? $storeIds : $storeIds[0]))
                     $skipRow = true;
                 break;
             default:
                 if ($orderItem->getData('product_options')) {
                     $productOptions = $orderItem->getData('product_options');
-//                    $parentIdArray = $configurableProductModel->getParentIdsByChild($productId);
-//                    if (isset($parentIdArray[0])) {
-//                        if (isset($productOptions['info_buyRequest']['product']))
-//                            if ($productOptions['info_buyRequest']['product'] != $productId)
-//                                if ($callType == 'tracking')
-//                                    $skipRow = true;
-//
-//                    }
-
-                    $parentIdArray = $groupedProductModel->getParentIdsByChild($productId);
-                    if (isset($parentIdArray[0])) {
-                        //if the Simple product is associated with a Grouped product (i.e. child).
-                        if ($this->getConfig(self::XML_PATH_ADVANCED_GROUPPROD, is_null($storeIds) ? $storeIds : $storeIds[0])) {
-                            if (isset($productOptions['info_buyRequest']['super_product_config']['product_id']))
-                                if ($productOptions['info_buyRequest']['super_product_config']['product_id'] != $productId)
-                                    $productId = $productOptions['info_buyRequest']['super_product_config']['product_id'];
-                        }
-
+                    //if the Simple product is associated with a Grouped product (i.e. child).
+                    if ($this->getConfig(self::XML_PATH_ADVANCED_GROUPPROD, is_null($storeIds) ? $storeIds : $storeIds[0])) {
+                        if (isset($productOptions['info_buyRequest']['super_product_config']['product_id']))
+                            if ($productOptions['info_buyRequest']['super_product_config']['product_id'] != $productId)
+                                $productId = $productOptions['info_buyRequest']['super_product_config']['product_id'];
                     }
 
-                    $parentIdArray = $bundleProductModel->getParentIdsByChild($productId);
-                    if (isset($parentIdArray[0])) {
-                        //if the Simple product is associated with a Bundle product (i.e. child).
-                        if ($this->getConfig(self::XML_PATH_ADVANCED_BUNDLEPROD, is_null($storeIds) ? $storeIds : $storeIds[0])) {
-                            if (isset($productOptions['info_buyRequest']['product']))
-                                if ($productOptions['info_buyRequest']['product'] != $productId)
-                                    $skipRow = true;
-                        }
+                    //if the Simple product is associated with a Bundle product (i.e. child).
+                    if ($this->getConfig(self::XML_PATH_ADVANCED_BUNDLEPROD, is_null($storeIds) ? $storeIds : $storeIds[0])) {
+                        if (isset($productOptions['info_buyRequest']['product']))
+                            if ($productOptions['info_buyRequest']['product'] != $productId)
+                                $skipRow = true;
                     }
                 }
 
@@ -496,13 +502,16 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
         if ($skipRow)
             return false;
 
-        $qty = $orderItem->getData('qty_ordered') - ($orderItem->getData('qty_canceled')+$orderItem->getData('qty_refunded'));
+        $qty = $orderItem->getData('qty_ordered') - ($orderItem->getData('qty_canceled') + $orderItem->getData('qty_refunded'));
         if ($orderItem->getData('status') == 'canceled')
             $qty =0;
 
+        $sku = $this->productResource->getProductsSku(array($productId));
+
         $res = array(
             'product_id' => $productId,
-            'qty' => strval($qty)
+            'qty' => strval($qty),
+            'sku' => $sku[0]['sku']
         );
         return $res;
     }
@@ -764,5 +773,17 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
     public function getTimezone($storeIds)
     {
         return $this->_storesConfig->getStoresConfigByPath(\Magento\Config\Model\Config\Backend\Admin\Custom::XML_PATH_GENERAL_LOCALE_TIMEZONE);
+    }
+
+    /**
+     * Retrieve array of related bundle product ids by selection product id(s)
+     *
+     * @param int|array $childId
+     * @return array
+     */
+    public function getBundleParentIdsByChildFixed($childId)
+    {
+        $query = new Query($this->_resource);
+        return $query->getParentIdsByChild($childId);
     }
 }

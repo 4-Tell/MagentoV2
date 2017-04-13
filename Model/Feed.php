@@ -130,6 +130,7 @@ class Feed implements FeedInterface
      */
     protected $_customerMetadataService;
 
+
     /**
      * @param \FourTell\Recommend\Helper\Api $helper
      * @param CustomerRepositoryInterface $customerRepository
@@ -327,6 +328,9 @@ class Feed implements FeedInterface
     }
 
 
+
+
+
     /**
      *
      * Get the products data
@@ -448,7 +452,9 @@ class Feed implements FeedInterface
         $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
         $configurableProductModel = $objectManager->get('\Magento\ConfigurableProduct\Model\Product\Type\Configurable');
         $groupedProductModel = $objectManager->get('\Magento\GroupedProduct\Model\Product\Type\Grouped');
-        $bundleProductModel = $objectManager->get('Magento\Bundle\Model\Product\Type');
+        $bundleProductModel = $objectManager->get('\Magento\Bundle\Model\Product\Type');
+        $bundleResource = $objectManager->get('\Magento\Bundle\Model\ResourceModel\Selection');
+
         $stockFlag = 'has_stock_status_filter';
         $collection->setFlag($stockFlag, true);
 
@@ -496,7 +502,6 @@ class Feed implements FeedInterface
 
 
             $images = $this->_helper->createImageCache($product);
-            $this->_logger->debug('$images',$images);
             $thumbnailNumber = $this->_helper->getThumbnailNumber($storeIds[0]);
 
             foreach ($storeIds as $storeId){
@@ -580,18 +585,20 @@ class Feed implements FeedInterface
             }
 
             if ($product->getTypeId() == "simple") {
-                //No Grouped/Bundled Parent IDs in Catalog Feed for Simple Products if simple not visible individually
-                if ($product->getVisibility() == 1) {
-                    $parentIdArray = $configurableProductModel->getParentIdsByChild($productId);
-                    if (isset($parentIdArray[0])) {
-                        $parentIds = array_merge($parentIds, $parentIdArray);
-                    }
+                // No Grouped/Bundled Parent IDs in Catalog Feed for Simple Products if simple not visible individually
+                // 1 Not Visible Individually
+                if ($product->getVisibility() != 1) {
                     $parentIdArray = $groupedProductModel->getParentIdsByChild($productId);
                     if (isset($parentIdArray[0])) {
                         $parentIds = array_merge($parentIds, $parentIdArray);
                     }
+                    // bundle fixed issue
+                    $parentIdArray = $this->_helper->getBundleParentIdsByChildFixed($productId);
+                    if (isset($parentIdArray[0])) {
+                        $parentIds = array_merge($parentIds, $parentIdArray);
+                    }
                 }
-                $parentIdArray = $bundleProductModel->getParentIdsByChild($productId);
+                $parentIdArray = $configurableProductModel->getParentIdsByChild($productId);
                 if (isset($parentIdArray[0])) {
                     $parentIds = array_merge($parentIds, $parentIdArray);
                 }
@@ -945,16 +952,27 @@ class Feed implements FeedInterface
         foreach ($collection as $item) {
             $productType = $item->getData('product_type');
             if (($productType == 'grouped') && $this->_helper->getConfig(\FourTell\Recommend\Helper\Data::XML_PATH_ADVANCED_GROUPPROD, is_null($storeIds) ? $storeIds : $storeIds[0])) {
-                if ($item->getData('product_options')) {
-                    $productOptions = unserialize($item->getData('product_options'));
+                if ($productOptions = $item->getData('product_options')) {
                     if (isset($productOptions['super_product_config']['product_id'])) {
+                        $groupedQty = $item->getData('qty_ordered') - ($item->getData('qty_canceled') + $item->getData('qty_refunded'));
+                        if ($item->getData('status') == 'canceled')
+                            $groupedQty =0;
+
                         if(isset($groupedPrice[$item->getOrderId()][$productOptions['super_product_config']['product_id']])) {
-                            $groupedPrice[$item->getOrderId()][$productOptions['super_product_config']['product_id']]['price'] += $item->getRowTotal();
-                            $groupedPrice[$item->getOrderId()][$productOptions['super_product_config']['product_id']]['original_price'] += $item->getData('original_price') * $item->getQtyOrdered();
+                            $groupedPrice[$item->getOrderId()][$productOptions['super_product_config']['product_id']]['price'] += $item->getPrice();
+                            $groupedPrice[$item->getOrderId()][$productOptions['super_product_config']['product_id']]['original_price'] += $item->getData('original_price');
+                            $groupedPrice[$item->getOrderId()][$productOptions['super_product_config']['product_id']]['groupedQty'] += $groupedQty;
+                            if ($groupedQty > 0)
+                                $groupedPrice[$item->getOrderId()][$productOptions['super_product_config']['product_id']]['count'] += 1;
                         }
                         else {
-                            $groupedPrice[$item->getOrderId()][$productOptions['super_product_config']['product_id']]['price'] = $item->getRowTotal();
-                            $groupedPrice[$item->getOrderId()][$productOptions['super_product_config']['product_id']]['original_price'] = $item->getData('original_price') * $item->getQtyOrdered();
+                            $groupedPrice[$item->getOrderId()][$productOptions['super_product_config']['product_id']]['price'] = $item->getPrice();
+                            $groupedPrice[$item->getOrderId()][$productOptions['super_product_config']['product_id']]['original_price'] = $item->getData('original_price');
+                            $groupedPrice[$item->getOrderId()][$productOptions['super_product_config']['product_id']]['groupedQty'] = $groupedQty;
+                            if ($groupedQty)
+                                $groupedPrice[$item->getOrderId()][$productOptions['super_product_config']['product_id']]['count'] = 1;
+                            else
+                                $groupedPrice[$item->getOrderId()][$productOptions['super_product_config']['product_id']]['count']= 0;
                         }
                     }
 
@@ -1025,14 +1043,16 @@ class Feed implements FeedInterface
                         }
 
                         $orderItemGrouped[$item->getOrderId()][] = $row['product_id'];
-                        if ($this->_helper->getConfig(\FourTell\Recommend\Helper\Data::XML_PATH_ADVANCED_GROUPPROD, is_null($storeIds) ? $storeIds : $storeIds[0])
-                            && ($item->getData('status') != 'canceled'))
-                            $qty = '1';
+                        if ($this->_helper->getConfig(\FourTell\Recommend\Helper\Data::XML_PATH_ADVANCED_GROUPPROD, is_null($storeIds) ? $storeIds : $storeIds[0]))
+                            if($groupedPrice[$item->getOrderId()][$row['product_id']]['count'])
+                                $qty = round($groupedPrice[$item->getOrderId()][$row['product_id']]['groupedQty']/$groupedPrice[$item->getOrderId()][$row['product_id']]['count']);
+                            else
+                                $qty = 0;
                     }
                 }
                 $price = str_replace(",", "", number_format($price, 2));
                 $originPrice = str_replace(",", "", number_format($originPrice, 2));
-                $result[] = array($order->getData('increment_id'), $row['product_id'], $customerId, $qty, $price, $originPrice, $createdAt, $updatedAt);
+                $result[] = array($order->getData('increment_id'), $row['sku'], $customerId, (string)$qty, $price, $originPrice, $createdAt, $updatedAt);
                 //$row['qty'], $row['qty_canceled'], $price, $dt->format('Y-m-d H:i:sP'));
             }
         }
