@@ -481,18 +481,25 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
             default:
                 if ($orderItem->getData('product_options')) {
                     $productOptions = $orderItem->getData('product_options');
-                    //if the Simple product is associated with a Grouped product (i.e. child).
-                    if ($this->getConfig(self::XML_PATH_ADVANCED_GROUPPROD, is_null($storeIds) ? $storeIds : $storeIds[0])) {
-                        if (isset($productOptions['info_buyRequest']['super_product_config']['product_id']))
-                            if ($productOptions['info_buyRequest']['super_product_config']['product_id'] != $productId)
-                                $productId = $productOptions['info_buyRequest']['super_product_config']['product_id'];
+
+                    $parentIdArray = $this->groupedProduct->getParentIdsByChild($productId);
+                    if (isset($parentIdArray[0])) {
+                        //if the Simple product is associated with a Grouped product (i.e. child).
+                        if ($this->getConfig(self::XML_PATH_ADVANCED_GROUPPROD, is_null($storeIds) ? $storeIds : $storeIds[0])) {
+                            if (isset($productOptions['info_buyRequest']['super_product_config']['product_id']))
+                                if ($productOptions['info_buyRequest']['super_product_config']['product_id'] != $productId)
+                                    $productId = $productOptions['info_buyRequest']['super_product_config']['product_id'];
+                        }
                     }
 
-                    //if the Simple product is associated with a Bundle product (i.e. child).
-                    if ($this->getConfig(self::XML_PATH_ADVANCED_BUNDLEPROD, is_null($storeIds) ? $storeIds : $storeIds[0])) {
-                        if (isset($productOptions['info_buyRequest']['product']))
-                            if ($productOptions['info_buyRequest']['product'] != $productId)
-                                $skipRow = true;
+                    $parentIdArray = $this->getBundleParentIdsByChildFixed($productId);
+                    if (isset($parentIdArray[0])) {
+                        //if the Simple product is associated with a Bundle product (i.e. child).
+                        if ($this->getConfig(self::XML_PATH_ADVANCED_BUNDLEPROD, is_null($storeIds) ? $storeIds : $storeIds[0])) {
+                            if (isset($productOptions['info_buyRequest']['product']))
+                                if ($productOptions['info_buyRequest']['product'] != $productId)
+                                    $skipRow = true;
+                        }
                     }
                 }
 
