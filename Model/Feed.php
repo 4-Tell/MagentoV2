@@ -1051,7 +1051,6 @@ class Feed implements FeedInterface
                 }
 
             }
-            $price = str_replace(",", "", number_format($price, 2));
             // Need to fix method
             $row = $this->_helper->productTypeRules('sales', $item, $storeIds);
             $qty = $row['qty'];

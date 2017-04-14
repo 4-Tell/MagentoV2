@@ -461,6 +461,7 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
      */
     public function productTypeRules($callType, $orderItem, $storeIds = null)
     {
+        $order = $orderItem->getOrder();
         $skipRow = false;
         $productId = $orderItem->getData('product_id');
         $productTypeReal = $orderItem->getProduct()->getTypeID();
@@ -510,7 +511,8 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
             return false;
 
         $qty = $orderItem->getData('qty_ordered') - ($orderItem->getData('qty_canceled') + $orderItem->getData('qty_refunded'));
-        if ($orderItem->getData('status') == 'canceled')
+
+        if ($order->getData('status') == 'canceled')
             $qty =0;
 
         $sku = $this->productResource->getProductsSku(array($productId));
