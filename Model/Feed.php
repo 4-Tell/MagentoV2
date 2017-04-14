@@ -130,6 +130,11 @@ class Feed implements FeedInterface
      */
     protected $_customerMetadataService;
 
+    /**
+     * @var \Magento\Catalog\Model\ResourceModel\Product
+     */
+    protected $productResource;
+
 
     /**
      * @param \FourTell\Recommend\Helper\Api $helper
@@ -177,6 +182,7 @@ class Feed implements FeedInterface
         \Magento\CatalogInventory\Api\StockRegistryInterface $stockRegistry,
         \Magento\Eav\Api\AttributeRepositoryInterface $attributeRepositoryInterface,
         \Magento\Customer\Api\CustomerMetadataInterface $customerMetadataService,
+        \Magento\Catalog\Model\ResourceModel\Product $productResource,
         array $data = []
     )
     {
@@ -201,6 +207,7 @@ class Feed implements FeedInterface
         $this->_logger = $logger;
         $this->attributeRepository = $attributeRepositoryInterface;
         $this->_customerMetadataService = $customerMetadataService;
+        $this->productResource = $productResource;
     }
 
     public function getCustomers()
@@ -345,11 +352,14 @@ class Feed implements FeedInterface
                 break;
 
             default:
-                $this->resultDataHead = array('ProductID', 'Name', 'CategoryIDs', 'ManufacturerID', 'Price', 'SalePrice',
-                    'PromotionPrice', 'ListPrice', 'Cost', 'MinBundlePrice', 'MaxBundlePrice', 'Inventory', 'Visible',
-                    'Link', 'ImageLink', 'AltViewImageLinks', 'Ratings', 'StandardCode', 'ParentID', 'ProductType',
-                    'Visibility', 'Active', 'StockAvailability', 'ActivatedDate', 'ModifiedDate');
-
+//                $this->resultDataHead = array('ProductID', 'Name', 'CategoryIDs', 'ManufacturerID', 'Price', 'SalePrice',
+//                    'PromotionPrice', 'ListPrice', 'Cost', 'MinBundlePrice', 'MaxBundlePrice', 'Inventory', 'Visible',
+//                    'Link', 'ImageLink', 'AltViewImageLinks', 'Ratings', 'StandardCode', 'ParentID', 'ProductType',
+//                    'Visibility', 'Active', 'StockAvailability', 'ActivatedDate', 'ModifiedDate');
+                $this->resultDataHead = array('SKU', 'ParentSKU', 'InternalID', 'ParentID', 'Name', 'CategoryIDs',
+                    'ManufacturerID', 'Price', 'SalePrice', 'PromotionPrice', 'ListPrice', 'Cost', 'MinBundlePrice',
+                    'MaxBundlePrice', 'Inventory', 'Visible', 'Link', 'ImageLink', 'AltViewImageLinks', 'Ratings',
+                    'ProductType', 'Visibility', 'Active', 'StockAvailability', 'ActivatedDate', 'ModifiedDate');
                 break;
         }
         // Create file header
@@ -482,7 +492,9 @@ class Feed implements FeedInterface
         }
         foreach ($collection as $product) {
             $parentIds = [];
+            $parentSkus = [];
             $productId = $product->getEntityId();
+            $productSku = $product->getSku();
             $cat = implode(",", $product->getCategoryIds());
             $manufacturerValue = '';
             if (!empty($manufacturerCode)) {
@@ -584,10 +596,10 @@ class Feed implements FeedInterface
                 $specialPrice = '';
             }
 
-            if ($product->getTypeId() == "simple") {
+            if ($product->getTypeId() == "simple" || $product->getTypeId() == "virtual") {
                 // No Grouped/Bundled Parent IDs in Catalog Feed for Simple Products if simple not visible individually
                 // 1 Not Visible Individually
-                if ($product->getVisibility() != 1) {
+                if ($product->getVisibility() == 1) {
                     $parentIdArray = $groupedProductModel->getParentIdsByChild($productId);
                     if (isset($parentIdArray[0])) {
                         $parentIds = array_merge($parentIds, $parentIdArray);
@@ -604,9 +616,17 @@ class Feed implements FeedInterface
                 }
             }
             if (isset($parentIds[0])) {
-                $parentIds = implode(',', $parentIds);
-            } else
-                $parentIds = "";
+                $skus = $this->productResource->getProductsSku($parentIds);
+                foreach ($skus as $sku) {
+                    $parentSkus[] = $sku['sku'];
+                }
+                $parentId = implode(',', $parentIds);
+                $parentSku = implode(',', $parentSkus);
+            }
+            else {
+                $parentId = '';
+                $parentSku = '';
+            }
 
             if (!$summaryData = $product->getRatingSummary()) {
                 $this->_reviewFactory->create()->getEntitySummary($product, $storeIds[0]);
@@ -730,7 +750,10 @@ class Feed implements FeedInterface
             $modifiedAt = new \DateTime($product->getData('updated_at'), new \DateTimeZone($zone));
 
             $resultData = array(
+                $productSku,
+                $parentSku,
                 $productId,
+                $parentId,
                 $product->getName(),
                 $cat,
                 $manufacturerValue,
@@ -907,7 +930,7 @@ class Feed implements FeedInterface
     {
         $result = [];
         //Head
-        $result[] = array('OrderID', 'ProductID', 'CustomerID', 'Quantity', 'ItemPrice', 'FullPrice', 'Date', 'ModifiedDate');
+        $result[] = array('OrderID', 'SKU', 'CustomerID', 'Quantity', 'ItemPrice', 'FullPrice', 'Date', 'ModifiedDate');
         $clientAlias = $this->_helper->ClientAlias;
         $storeIds = $this->_helper->map($clientAlias);
         if (empty($storeIds))

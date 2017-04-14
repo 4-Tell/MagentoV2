@@ -342,9 +342,9 @@ class Loader extends \Magento\Framework\View\Element\Template
         }
 
         $res = array(
-            'CartIds' => $productIds,
+            'CartChildIds' => $productIds,
             'CartParentIds' => $parentIds,
-            'CartSkus' => $productSkus,
+            'CartChildSkus' => $productSkus,
             'CartParentSkus' => $parentSkus,
         );
 
