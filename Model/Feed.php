@@ -465,10 +465,10 @@ class Feed implements FeedInterface
         $bundleProductModel = $objectManager->get('\Magento\Bundle\Model\Product\Type');
         $bundleResource = $objectManager->get('\Magento\Bundle\Model\ResourceModel\Selection');
 
+        //addIsInStockFilterToCollection
         $stockFlag = 'has_stock_status_filter';
         $collection->setFlag($stockFlag, true);
-
-
+        //$collection->printLogQuery(true,true);
         if ($this->_helper->getFeedMethod() == 'getInventory') {
             foreach ($collection as $product) {
                 $productId = $product->getEntityId();
@@ -483,9 +483,9 @@ class Feed implements FeedInterface
                 if ($status == \Magento\Catalog\Model\Product\Attribute\Source\Status::STATUS_DISABLED)
                     $qty = 0;
                 //Set the inventory to zero for those products that are labeled "Out Of Stock"
-                if (!$this->stockRegistry->getProductStockStatus($product->getId())) {
-                    $qty = 0;
-                }
+//                if (!$this->stockRegistry->getProductStockStatus($product->getId())) {
+//                    $qty = 0;
+//                }
                 $this->resultData[] = array($productId, $qty);
             }
             return $this->resultData;
@@ -574,7 +574,7 @@ class Feed implements FeedInterface
                 $stockAvailability = 'In Stock';
             } else {
                 $stockAvailability = 'Out of Stock';
-                $qty = 0;
+                //$qty = 0;
             }
 
             $priceList = $product->getData('msrp');
@@ -599,17 +599,17 @@ class Feed implements FeedInterface
             if ($product->getTypeId() == "simple" || $product->getTypeId() == "virtual") {
                 // No Grouped/Bundled Parent IDs in Catalog Feed for Simple Products if simple not visible individually
                 // 1 Not Visible Individually
-                if ($product->getVisibility() == 1) {
-                    $parentIdArray = $groupedProductModel->getParentIdsByChild($productId);
-                    if (isset($parentIdArray[0])) {
-                        $parentIds = array_merge($parentIds, $parentIdArray);
-                    }
-                    // bundle fixed issue
-                    $parentIdArray = $this->_helper->getBundleParentIdsByChildFixed($productId);
-                    if (isset($parentIdArray[0])) {
-                        $parentIds = array_merge($parentIds, $parentIdArray);
-                    }
-                }
+//                if ($product->getVisibility() == 1) {
+//                    $parentIdArray = $groupedProductModel->getParentIdsByChild($productId);
+//                    if (isset($parentIdArray[0])) {
+//                        $parentIds = array_merge($parentIds, $parentIdArray);
+//                    }
+//                    // bundle fixed issue
+//                    $parentIdArray = $this->_helper->getBundleParentIdsByChildFixed($productId);
+//                    if (isset($parentIdArray[0])) {
+//                        $parentIds = array_merge($parentIds, $parentIdArray);
+//                    }
+//                }
                 $parentIdArray = $configurableProductModel->getParentIdsByChild($productId);
                 if (isset($parentIdArray[0])) {
                     $parentIds = array_merge($parentIds, $parentIdArray);
@@ -770,8 +770,6 @@ class Feed implements FeedInterface
                 $image,
                 $alternativeImages,
                 (string)$avg,
-                $product->getSku(),
-                $parentIds,
                 $product->getTypeId(),
                 $visibilityOptions[$visibility],
                 (string)$statusFlag,

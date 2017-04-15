@@ -509,7 +509,6 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
         }
         if ($skipRow)
             return false;
-
         $qty = $orderItem->getData('qty_ordered') - ($orderItem->getData('qty_canceled') + $orderItem->getData('qty_refunded'));
 
         if ($order->getData('status') == 'canceled')
@@ -522,6 +521,7 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
             'qty' => strval($qty),
             'sku' => $sku[0]['sku']
         );
+
         return $res;
     }
 

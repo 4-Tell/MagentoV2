@@ -147,9 +147,9 @@ class Success extends \Magento\Framework\View\Element\Template
                 elseif (isset($orderItemGrouped[$detail['product_id']])){
                     $price = str_replace(",", "", number_format($orderItemGrouped[$detail['product_id']], 2));
                     if($groupedPrice[$detail['product_id']]['count'])
-                        $row['qty'] = round($groupedPrice[$detail['product_id']]['groupedQty']/$groupedPrice[$detail['product_id']]['count']);
+                        $detail['qty'] = round($groupedPrice[$detail['product_id']]['groupedQty']/$groupedPrice[$detail['product_id']]['count']);
                     else
-                        $row['qty'] = 0;
+                        $detail['qty'] = 0;
                 }
                 else {
                     $price = str_replace(",", "", number_format($item->getData('price'), 2));
@@ -167,7 +167,7 @@ class Success extends \Magento\Framework\View\Element\Template
      */
     public function getCurrentOrderId()
     {
-        return $this->_checkoutSession->getLastOrderId();
+        return $this->_checkoutSession->getLastRealOrderId();
     }
 
     /**
