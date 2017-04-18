@@ -132,7 +132,7 @@
                 <field id="groupprod" translate="label tooltip" type="select" sortOrder="3" showInDefault="1"
                        showInWebsite="1" showInStore="0">
                     <label>Recommend Grouped Products</label>
-                    <source_model>FourTell\Recommend\Model\Config\Source\Group</source_model>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                     <tooltip>If you want to recommend grouped products, please leave this rule enabled. If you want to
                         only recommend simple products, and never the group, please disable the rule. Disabling the rule
                         is best if you have few sales of grouped products.
