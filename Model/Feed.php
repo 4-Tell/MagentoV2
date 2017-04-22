@@ -348,17 +348,11 @@ class Feed implements FeedInterface
         switch ($this->_helper->getFeedMethod()) {
             case 'getInventory':
                 $this->resultDataHead = array('ProductID', 'Inventory');
-
                 break;
 
             default:
-//                $this->resultDataHead = array('ProductID', 'Name', 'CategoryIDs', 'ManufacturerID', 'Price', 'SalePrice',
-//                    'PromotionPrice', 'ListPrice', 'Cost', 'MinBundlePrice', 'MaxBundlePrice', 'Inventory', 'Visible',
-//                    'Link', 'ImageLink', 'AltViewImageLinks', 'Ratings', 'StandardCode', 'ParentID', 'ProductType',
-//                    'Visibility', 'Active', 'StockAvailability', 'ActivatedDate', 'ModifiedDate');
                 $this->resultDataHead = array('SKU', 'ParentSKU', 'InternalID', 'ParentID', 'Name', 'CategoryIDs',
-                    'ManufacturerID', 'Price', 'SalePrice', 'PromotionPrice', 'ListPrice', 'Cost', 'MinBundlePrice',
-                    'MaxBundlePrice', 'Inventory', 'Visible', 'Link', 'ImageLink', 'AltViewImageLinks', 'Ratings',
+                    'ManufacturerID', 'Price', 'SalePrice', 'PromotionPrice', 'ListPrice', 'Cost', 'Inventory', 'Visible', 'Link', 'ImageLink', 'AltViewImageLinks', 'Ratings',
                     'ProductType', 'Visibility', 'Active', 'StockAvailability', 'ActivatedDate', 'ModifiedDate');
                 break;
         }
@@ -368,8 +362,7 @@ class Feed implements FeedInterface
         $extraFields = $this->_helper->getExtraFields();
         if (!is_null($extraFields)) {
             foreach ($extraFields as $key => $extraField) {
-                $extraField = strtolower($extraField);
-                if (!in_array($extraField, $searchResultDataHead))
+                if (!in_array(strtolower($extraField), $searchResultDataHead))
                     $this->resultDataHead[] = $extraField;
                 else
                     unset($extraFields[$key]);
@@ -482,10 +475,7 @@ class Feed implements FeedInterface
                 $status = $product->getStatus();
                 if ($status == \Magento\Catalog\Model\Product\Attribute\Source\Status::STATUS_DISABLED)
                     $qty = 0;
-                //Set the inventory to zero for those products that are labeled "Out Of Stock"
-//                if (!$this->stockRegistry->getProductStockStatus($product->getId())) {
-//                    $qty = 0;
-//                }
+
                 $this->resultData[] = array($productId, $qty);
             }
             return $this->resultData;
@@ -498,13 +488,9 @@ class Feed implements FeedInterface
             $cat = implode(",", $product->getCategoryIds());
             $manufacturerValue = '';
             if (!empty($manufacturerCode)) {
-//                try {
                 $manufacturerValue = $product->getData($manufacturerCode);
                 if (is_null($manufacturerValue))
                     $manufacturerValue = '';
-//                } catch (Exception $e) {
-//                    $manufacturerValue = '';
-//                }
             }
 
             $qty = $this->getProductStockQty($product);
@@ -515,12 +501,10 @@ class Feed implements FeedInterface
 
             $images = $this->_helper->createImageCache($product);
             $thumbnailNumber = $this->_helper->getThumbnailNumber($storeIds[0]);
-
             foreach ($storeIds as $storeId){
                 if (isset($images[$storeId][$thumbnailNumber])) {
                     $image = $images[$storeId][$thumbnailNumber];
                     break;
-                    //unset($images[$storeIds[0]][$thumbnailNumber]);
                 }
             }
             if (isset($image)){
@@ -544,18 +528,6 @@ class Feed implements FeedInterface
             }
             else
                 $alternativeImages = '';
-
-//            if (isset($images[$storeIds[0]][$thumbnailNumber])) {
-//                $image = $images[$storeIds[0]][$thumbnailNumber];
-//                unset($images[$storeIds[0]][$thumbnailNumber]);
-//            }
-//            else
-//                $image = '';
-//
-//            if(isset($images[$storeIds[0]]))
-//                $alternativeImages = implode(',',$images[$storeIds[0]]);
-//            else
-//                $alternativeImages = '';
 
             $visibility = $product->getVisibility();
             $visibilityOptions = \Magento\Catalog\Model\Product\Visibility::getOptionArray();
@@ -654,6 +626,18 @@ class Feed implements FeedInterface
                     $extraField = strtolower($extraField);
                     $found = false;
                     switch ($extraField) {
+                        case 'maxprice':
+                            $maxPrice = null;
+                            if ($product->getTypeId() == \Magento\Bundle\Model\Product\Type::TYPE_CODE ){
+                                $finalPrice = $product->getPriceInfo()->getPrice('final_price');
+                                $maxPrice = $finalPrice->getMaximalPrice()->getValue();
+                            }
+                            if ($product->getTypeId() == \Magento\GroupedProduct\Model\Product\Type\Grouped::TYPE_CODE){
+                                $maxPrice = $this->_helper->getGroupedMaxPrice($product);
+                            }
+                            $extraFieldsValue[] = (!is_null($maxPrice)) ? number_format($maxPrice, 2, '.', '') : '';
+                            $found = true;
+                            break;
                         case 'related':
                             $extraFieldsValue[] = implode(',', $product->getRelatedProductIds());
                             $found = true;
@@ -734,15 +718,19 @@ class Feed implements FeedInterface
                 }
             }
 
-            $_minimalPrice = '';
-            $_maximalPrice = '';
-            if ($product->getTypeId() == "bundle"){
-                $bundleObj=$product->getPriceInfo()->getPrice('final_price');
-                $_minimalPrice = $bundleObj->getMinimalPrice()->getValue();
-                $_maximalPrice = $bundleObj->getMaximalPrice()->getValue();
-                $_minimalPrice = str_replace(",", "", number_format($_minimalPrice, 2));
-                $_maximalPrice = str_replace(",", "", number_format($_maximalPrice, 2));
+            $price = $product->getPrice();
+
+            if ($product->getTypeId() == \Magento\Bundle\Model\Product\Type::TYPE_CODE ){
+                $finalPrice = $product->getPriceInfo()->getPrice('final_price');
+                $price = $finalPrice->getMinimalPrice()->getValue();
+//                $_maximalPrice = $bundleObj->getMaximalPrice()->getValue();
             }
+            if ($product->getTypeId() == \Magento\GroupedProduct\Model\Product\Type\Grouped::TYPE_CODE){
+                $finalPrice = $product->getPriceInfo()->getPrice('final_price');
+                $price = $finalPrice->getMinimalPrice()->getValue();
+                //$maxPrice = $this->_helper->getGroupedMaxPrice($product);
+            }
+
 
             $zones = $this->_helper->getTimezone($storeIds);
             $zone = $zones[$storeIds[0]];
@@ -757,13 +745,11 @@ class Feed implements FeedInterface
                 $product->getName(),
                 $cat,
                 $manufacturerValue,
-                number_format($product->getPrice(), 2, '.', ''),
+                number_format($price, 2, '.', ''),
                 $specialPrice,
                 number_format($product->getFinalPrice(), 2, '.', ''),
                 number_format($priceList, 2, '.', ''),
                 number_format($priceCost, 2, '.', ''),
-                $_minimalPrice,
-                $_maximalPrice,
                 number_format($qty, 0),
                 (string)$visible,
                 $productUrl,
@@ -1018,18 +1004,7 @@ class Feed implements FeedInterface
             }
 
             // Get the data for the current item
-            $order_id = $order->getData('increment_id');
-            //$product_id = $item->getData('product_id');
             $product_type = $item->getData('product_type');
-            // TODO: instead $row['qty'] ???
-//            if ($this->_helper->DataGroup == 'Returns'){
-//                $qty_refunded = $item->getData('qty_refunded');
-//                $qty_canceled = $item->getData('qty_canceled');
-//                $qty_ordered = ($qty_refunded + $qty_canceled) * (-1);
-//            }else{
-//                $qty_ordered = $item->getData('qty_ordered');
-//            }
-
             $zones = $this->_helper->getTimezone($storeIds);
             $zone = $zones[$item->getData('store_id')];
             $dt = new \DateTime($item->getData('created_at'), new \DateTimeZone($zone));

@@ -7,6 +7,7 @@ namespace FourTell\Recommend\Helper;
 
 use Magento\Framework\App\ResourceConnection;
 use FourTell\Recommend\Model\Query;
+use Magento\Catalog\Pricing\Price\FinalPrice;
 
 /**
  * Class Data
@@ -467,15 +468,15 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
         $productTypeReal = $orderItem->getProduct()->getTypeID();
 
         switch ($productTypeReal) {
-            case 'configurable':
+            case \Magento\ConfigurableProduct\Model\Product\Type\Configurable::TYPE_CODE:
                 if ($callType == 'sales' || $callType == 'tracking')
                     $skipRow = true;
                 break;
-            case 'grouped':
+            case \Magento\GroupedProduct\Model\Product\Type\Grouped::TYPE_CODE:
                 if (!$this->getConfig(self::XML_PATH_ADVANCED_GROUPPROD, is_null($storeIds) ? $storeIds : $storeIds[0]))
                     $skipRow = true;
                 break;
-            case 'bundle':
+            case \Magento\Bundle\Model\Product\Type::TYPE_CODE:
                 if (!$this->getConfig(self::XML_PATH_ADVANCED_BUNDLEPROD, is_null($storeIds) ? $storeIds : $storeIds[0]))
                     $skipRow = true;
                 break;
@@ -570,7 +571,6 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
             if (empty($alternativeViews))
                 continue;
             $imageSize = $this->getImageSize($storeId);
-            //$imageFile = $this->imageHelper->getPlaceholder();
             foreach($alternativeViews as $thumbnail_number) {
                 $imageFile = '';
                 if ((int)$thumbnail_number > 0 and (int)$thumbnail_number < 21) {
@@ -794,5 +794,30 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
     {
         $query = new Query($this->_resource);
         return $query->getParentIdsByChild($childId);
+    }
+
+    /**
+     * Returns Grouped product max price
+     *
+     * @return Product
+     */
+    public function getGroupedMaxPrice($product)
+    {
+        $maxPrice = null;
+        if ($product->getTypeId() == \Magento\GroupedProduct\Model\Product\Type\Grouped::TYPE_CODE) {
+            $products = $product->getTypeInstance()->getAssociatedProducts($product);
+            $maxPrice = 0;
+            foreach ($products as $item) {
+                $_product = clone $item;
+                $_product->setQty(\Magento\Framework\Pricing\PriceInfoInterface::PRODUCT_QUANTITY_DEFAULT);
+                $price = $_product->getPriceInfo()
+                    ->getPrice(FinalPrice::PRICE_CODE)
+                    ->getValue();
+                if ($price !== false) {
+                    $maxPrice += $price;
+                }
+            }
+        }
+        return $maxPrice;
     }
 }

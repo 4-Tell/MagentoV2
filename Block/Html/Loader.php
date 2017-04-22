@@ -132,10 +132,10 @@ class Loader extends \Magento\Framework\View\Element\Template
         $productType = $product->getTypeID();
 
         switch ($productType) {
-            case 'configurable':
+            case \Magento\ConfigurableProduct\Model\Product\Type\Configurable::TYPE_CODE:
                 $productIds[] = $product->getId();
                 break;
-            case 'grouped':
+            case \Magento\GroupedProduct\Model\Product\Type\Grouped::TYPE_CODE:
                 if ($this->_scopeConfig->getValue(
                     \FourTell\Recommend\Helper\Data::XML_PATH_ADVANCED_GROUPPROD,
                     \Magento\Store\Model\ScopeInterface::SCOPE_STORE
@@ -152,7 +152,7 @@ class Loader extends \Magento\Framework\View\Element\Template
                 }
 
                 break;
-            case 'bundle':
+            case \Magento\Bundle\Model\Product\Type::TYPE_CODE:
                 if ($this->_scopeConfig->getValue(
                     \FourTell\Recommend\Helper\Data::XML_PATH_ADVANCED_BUNDLEPROD,
                     \Magento\Store\Model\ScopeInterface::SCOPE_STORE
@@ -169,10 +169,11 @@ class Loader extends \Magento\Framework\View\Element\Template
                     }
                 }
                 break;
-            case 'simple':
-            case 'virtual':
+            case \Magento\Catalog\Model\Product\Type::TYPE_SIMPLE:
+            case \Magento\Catalog\Model\Product\Type::TYPE_VIRTUAL:
                 $productIds[] = $product->getId();
                 break;
+
             default:
                 $productIds[] = $product->getId();
         }
