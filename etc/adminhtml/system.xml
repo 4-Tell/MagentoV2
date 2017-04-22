@@ -21,7 +21,7 @@
                     <label>Enabled</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                     <!-- <backend_model>Magento\Config\Model\Config\Backend\Encrypted</backend_model> -->
-                    <tooltip>Select Yes to enable the 4-Tell extension or No to disable it.</tooltip>
+                    <tooltip>Select Yes to enable display of 4-Tell recommendations. Select No to temporarily remove 4-Tell recommendations from the site.</tooltip>
                 </field>
                 <field id="extension_version" translate="label tooltip" type="label" sortOrder="5" showInDefault="1"
                        showInWebsite="1" showInStore="1">
@@ -32,17 +32,17 @@
                 <field id="service_key" translate="label tooltip" type="text" sortOrder="10" showInDefault="1"
                        showInWebsite="1" showInStore="0">
                     <label>Service Key</label>
-                    <tooltip>To generate a service key, log in to the 4-Tell dashboard.</tooltip>
+                    <tooltip>To generate a service key, login to the 4-Tell dashboard at dashboard.4-tell.com.</tooltip>
                 </field>
                 <field id="client_id" translate="label tooltip" type="text" sortOrder="15" showInDefault="1"
                        showInWebsite="1" showInStore="1">
                     <label>Client Alias</label>
-                    <tooltip>Enter your Client Alias, this is supplied to you by 4-Tell.</tooltip>
+                    <tooltip>Enter the client alias which was supplied to you by 4-Tell.</tooltip>
                 </field>
                 <field id="mode" translate="label tooltip" type="select" sortOrder="20" showInDefault="1"
                        showInWebsite="1" showInStore="0">
                     <label>Mode</label>
-                    <tooltip>Set to Live for production and Stage for testing.</tooltip>
+                    <tooltip>Select Live to receive recommendations from 4-Tell's live servers. Select Stage to receive recommendations from 4-Tell's stage servers.</tooltip>
                     <source_model>FourTell\Recommend\Model\Config\Source\Mode</source_model>
                 </field>
                 <field id="ssl_required" translate="label tooltip" type="select" sortOrder="30" showInDefault="1"
@@ -104,9 +104,7 @@
                        showInWebsite="0" showInStore="0">
                     <label>JavaScript Loader</label>
                     <frontend_model>FourTell\Recommend\Block\System\Config\Form\Field\JsLoader</frontend_model>
-                    <tooltip>Edit the JavaScript Loader used by 4-Tell. This field is enabled only if you are using
-                        JavaScript to display recommendations. Please do not edit without 4-Tell’s permission as one
-                        wrong character can remove all of your recommendations.
+                    <tooltip>Edit the 4-Tell JavaScript Loader. Please do not edit without 4-Tell’s permission as one wrong character can remove all of your recommendations. Please do not edit without 4-Tell’s permission as one wrong character can remove all of your recommendations.
                     </tooltip>
                 </field>
             </group>
@@ -128,7 +126,7 @@
                     <depends>
                         <field id="manufacturer_enable">1</field>
                     </depends>
-                    <tooltip>Like manufacturer, brand, ...</tooltip>
+                    <tooltip>Select to include brand information in the catalog. Fill in the Magento Attribute Code for brand such as 'manufacturer' or 'brand'.</tooltip>
                 </field>
                 <field id="groupprod" translate="label tooltip" type="select" sortOrder="3" showInDefault="1"
                        showInWebsite="1" showInStore="0">
@@ -143,8 +141,8 @@
                        showInWebsite="1" showInStore="0">
                     <label>Recommend Bundled Products</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
-                    <tooltip>If you want to recommend bundled products, please leave this rule enabled. If you want to
-                        only recommend simple products, and never the bundle, please disable the rule. Disabling the
+                    <tooltip>If you want to recommend bundled products, leave this rule enabled. If you want to
+                        only recommend simple products, and never the bundle, disable the rule. Disabling the
                         rule is best if you have few sales of bundled products.
                     </tooltip>
                 </field>
@@ -157,7 +155,7 @@
                         <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                         <backend_model>FourTell\Recommend\Model\Config\Source\RestrictAttributeEnable</backend_model>
                         <tooltip>Set to Yes if you want to restrict the catalog feed to those products with the
-                            specified attribute set to the specified value, set to No otherwise
+                            specified attribute set to the specified value, set to No otherwise.
                         </tooltip>
                     </field>
                     <field id="restrict_attribute" type="text" translate="label comment" sortOrder="3" showInDefault="1"
