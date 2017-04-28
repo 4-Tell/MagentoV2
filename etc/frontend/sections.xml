@@ -7,11 +7,28 @@
 -->
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="urn:magento:module:FourTell_Recommend:etc/sections.xsd">
-    <action name="customer/account/logout"/>
-    <action name="customer/account/loginPost"/>
-    <action name="customer/account/createPost"/>
+    <action name="checkout/sidebar/removeItem">
+        <section name="recommend"/>
+    </action>
+    <action name="customer/account/logout">
+        <section name="recommend"/>
+    </action>
+    <action name="customer/account/loginPost">
+        <section name="recommend"/>
+    </action>
+    <action name="checkout/cart/add">
+        <section name="recommend"/>
+    </action>
+    <action name="checkout/cart/delete">
+        <section name="recommend"/>
+    </action>
+    <action name="checkout/cart/updatePost">
+        <section name="recommend"/>
+    </action>
+    <action name="checkout/cart/updateItemOptions">
+        <section name="recommend"/>
+    </action>
     <action name="customer/ajax/login">
-        <section name="checkout-data"/>
-        <section name="cart"/>
+        <section name="recommend"/>
     </action>
 </config>

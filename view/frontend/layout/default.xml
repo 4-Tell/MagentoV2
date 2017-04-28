@@ -7,10 +7,10 @@
 -->
 <page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
     <body>
-        <!--<block name="require.js" class="Magento\Framework\View\Element\Template" template="Magento_Theme::page/js/require_js.phtml" />-->
         <referenceContainer name="after.body.start">
             <block class="FourTell\Recommend\Block\Html\Loader" name="recommend.loader" template="FourTell_Recommend::page/loader.phtml"/>
-            <block class="FourTell\Recommend\Block\Html\Variables" name="recommend_variables" template="FourTell_Recommend::variables.phtml" />
+            <!--<block class="FourTell\Recommend\Block\Html\Variables" name="recommend_variables" template="FourTell_Recommend::variables.phtml" />-->
+            <block class="FourTell\Recommend\Block\Html\Loader" name="recommend.variables" template="FourTell_Recommend::recommend_variables.phtml" />
         </referenceContainer>
     </body>
 </page>

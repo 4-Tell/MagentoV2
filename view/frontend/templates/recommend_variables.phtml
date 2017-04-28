@@ -1,0 +1,34 @@
+<?php
+/**
+ * 4-Tell Product Recommendations
+ *
+ * @package FourTell_Recommend
+ * @copyright 4-Tell, Inc.
+ */
+
+// @codingStandardsIgnoreFile
+/* @var $block \FourTell\Recommend\Block\Html\Loader */
+
+if ($block->isConfigEnable()):
+    $variables = $block->getVariables();
+    echo $variables;
+    $extraData = $block->getExtraData();
+?>
+<div data-bind="scope: 'recommend'">
+    <div data-bind="html: variables().data"><?php echo $extraData; ?></div>
+</div>
+<script type="text/x-magento-init">
+        {
+            "*": {
+                "Magento_Ui/js/core/app": {
+                    "components": {
+                        "recommend": {
+                            "component": "FourTell_Recommend/js/recommend-variables"
+                        }
+                    }
+                }
+            }
+        }
+</script>
+<?php
+endif;

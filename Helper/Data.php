@@ -8,6 +8,7 @@ namespace FourTell\Recommend\Helper;
 use Magento\Framework\App\ResourceConnection;
 use FourTell\Recommend\Model\Query;
 use Magento\Catalog\Pricing\Price\FinalPrice;
+use Magento\Framework\Webapi\Exception;
 
 /**
  * Class Data
@@ -158,6 +159,23 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
     protected $groupedProduct;
 
     /**
+     * @var \Magento\Catalog\Api\ProductRepositoryInterface
+     */
+    protected $productRepository;
+
+    /**
+     * @var \Magento\Catalog\Api\CategoryRepositoryInterface
+     */
+    protected $categoryRepository;
+
+    /**
+     * Catalog session
+     *
+     * @var \Magento\Catalog\Model\Session
+     */
+    protected $_catalogSession;
+
+    /**
      * Construct
      *
      * @param \Magento\Framework\App\Helper\Context $context
@@ -176,6 +194,7 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
      * @param \Magento\Customer\Model\Visitor $customerVisitor
      * @param \Magento\Catalog\Model\Product $productModel
      * @param \Magento\Catalog\Model\ResourceModel\Product\Gallery
+     * @param \Magento\Catalog\Model\Session $catalogSession
      */
     public function __construct(
         \Magento\Framework\App\Helper\Context $context,
@@ -197,7 +216,10 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
         \Magento\Catalog\Model\ResourceModel\Product $productResource,
         \Magento\Bundle\Model\Product\Type $bundleProductType,
         \Magento\ConfigurableProduct\Model\Product\Type\Configurable $configurableProduct,
-        \Magento\GroupedProduct\Model\Product\Type\Grouped $groupedProduct
+        \Magento\GroupedProduct\Model\Product\Type\Grouped $groupedProduct,
+        \Magento\Catalog\Api\ProductRepositoryInterface $productRepository,
+        \Magento\Catalog\Api\CategoryRepositoryInterface $categoryRepository,
+        \Magento\Catalog\Model\Session $catalogSession
     )
     {
         parent::__construct($context);
@@ -221,6 +243,9 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
         $this->bundleProductType = $bundleProductType;
         $this->configurableProduct = $configurableProduct;
         $this->groupedProduct = $groupedProduct;
+        $this->productRepository = $productRepository;
+        $this->categoryRepository = $categoryRepository;
+        $this->_catalogSession = $catalogSession;
     }
 
     /**
@@ -819,5 +844,264 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
             }
         }
         return $maxPrice;
+    }
+
+    /**
+     * Returns ProductIds, according to product type of the product being viewed and config rules
+     *
+     * @param $product
+     * @return string
+     */
+    public function getProductIds($product)
+    {
+        $productIds = [];
+        $productType = $product->getTypeID();
+
+        switch ($productType) {
+            case \Magento\ConfigurableProduct\Model\Product\Type\Configurable::TYPE_CODE:
+                $productIds[] = $product->getId();
+                break;
+            case \Magento\GroupedProduct\Model\Product\Type\Grouped::TYPE_CODE:
+                if ($this->scopeConfig->getValue(
+                    \FourTell\Recommend\Helper\Data::XML_PATH_ADVANCED_GROUPPROD,
+                    \Magento\Store\Model\ScopeInterface::SCOPE_STORE
+                )
+                ) {
+                    $productIds[] = $product->getId();
+                } else {
+                    $associatedProducts = $product->getTypeInstance()->getAssociatedProducts($product);
+                    if (isset($associatedProducts) && is_array($associatedProducts) && count($associatedProducts) > 0) {
+                        foreach ($associatedProducts as $associated) {
+                            $productIds[] = $associated->getId();
+                        }
+                    }
+                }
+
+                break;
+            case \Magento\Bundle\Model\Product\Type::TYPE_CODE:
+                if ($this->scopeConfig->getValue(
+                    \FourTell\Recommend\Helper\Data::XML_PATH_ADVANCED_BUNDLEPROD,
+                    \Magento\Store\Model\ScopeInterface::SCOPE_STORE
+                )
+                ) {
+                    $productIds[] = $product->getId();
+                } else {
+                    $associatedProducts = $product->getTypeInstance(true)->getChildrenIds($product->getId(), false);
+                    if (isset($associatedProducts) && is_array($associatedProducts) && count($associatedProducts) > 0) {
+                        foreach ($associatedProducts as $associated) {
+                            if (is_array($associated))
+                                $productIds = array_merge($productIds, array_keys($associated));
+                        }
+                    }
+                }
+                break;
+            case \Magento\Catalog\Model\Product\Type::TYPE_SIMPLE:
+            case \Magento\Catalog\Model\Product\Type::TYPE_VIRTUAL:
+                $productIds[] = $product->getId();
+                break;
+
+            default:
+                $productIds[] = $product->getId();
+        }
+
+        return $productIds;
+    }
+
+
+    /**
+     * Returns parameters that should appear in the loader code
+     *
+     * @return string
+     */
+    public function getVariables()
+    {
+        $res = '';
+        try {
+            $data = [];
+            if ($this->_request->getFullActionName() == 'catalog_category_view')
+                $currentCategory = $this->_registry->registry('current_category');
+
+            if (isset($currentCategory)) {
+                if ($currentCategory instanceof \Magento\Catalog\Model\Category) {
+                    $data['CategoryId'] = $currentCategory->getId();
+                }
+            }
+
+            // Product Page
+            if ($this->_request->getFullActionName() == 'catalog_product_view')
+                $product = $this->_registry->registry('current_product');
+
+            // Product Page
+            if (isset($product)) {
+                if (!$product->isVisibleInCatalog() || !$product->isVisibleInSiteVisibility()) {
+                    throw new NoSuchEntityException();
+                }
+                $productSkus = array();
+                $productIds = $this->getProductIds($product);
+                $skus = $this->productResource->getProductsSku($productIds);
+                foreach ($productIds as $id) {
+                    foreach ($skus as $sku) {
+                        if ($id == $sku['entity_id'])
+                            $productSkus[] = $sku['sku'];
+                    }
+                }
+                $data['ProductIds'] = implode(",", $productIds);
+                $data['ProductSkus'] = implode(",", $productSkus);
+            }
+
+            foreach ($data as $key => $value) {
+                $res .= "window._4TellBoost.$key='$value'; ";
+            }
+        }
+        catch(Exception $e){
+        }
+        if (!empty($res))
+            $res = '<!--4-Tell Recommendations Start--><script type="text/javascript">' . $res . '</script><!--4-Tell Recommendations End-->';
+        return $res;
+    }
+
+    /**
+     * Returns parameters that should appear in the loader code
+     *
+     * @return string
+     */
+    public function getExtraData()
+    {
+        $res = '';
+        try {
+            $customerSession = $this->_customerSession;
+            if ($customerSession->isLoggedIn())
+                $data['CustomerId'] = $customerSession->getCustomerId();
+            else
+                $data['CustomerId'] = '';
+
+            $cartData = $this->productTypeRulesCartProductIds();
+            foreach ($cartData as $key => $val) {
+                if (empty($val))
+                    $data[$key] = '';
+                else
+                    $data[$key] = implode(",", $val);
+            }
+
+            foreach ($data as $key => $value) {
+                $res .= "window._4TellBoost.$key='$value'; ";
+            }
+            $res .= "window._4TellBoost.Ready=true; ";
+        }
+        catch(Exception $e){
+            $res .= "window._4TellBoost.Ready=false; ";
+        }
+
+        $res = '<!--4-Tell Recommendations Start--><script type="text/javascript">' . $res . '</script><!--4-Tell Recommendations End-->';
+        return $res;
+    }
+
+    /**
+     * Returns ProductIds in cart, according to product type and config rules
+     *
+     * @return string
+     */
+    public function productTypeRulesCartProductIds()
+    {
+        $checkoutSession = $this->_checkoutSession;
+        $productIds = array();
+        $productSkus = array();
+        $parentIds = array();
+        $parentSkus = array();
+
+        $cartItems = $checkoutSession->getQuote()->getAllVisibleItems();
+        if ($cartItems) {
+            foreach ($cartItems as $cartItem) {
+                if (!is_object($cartItem))
+                    continue;
+                $product = $cartItem->getProduct();
+                $productType = $product->getTypeId();
+                $productId = $product->getData('entity_id');
+                if ($cartItem->getOptionByCode('info_buyRequest')) {
+                    $infoBuyRequest = unserialize($cartItem->getOptionByCode('info_buyRequest')->getValue());
+                    if (isset($infoBuyRequest['super_product_config']['product_id'])) {
+                        $productType = 'grouped';
+                    }
+                }
+                switch ($productType) {
+                    case 'configurable':
+                        $parentIds[] = $productId;
+                        $qtyOptions = $cartItem->getData('qty_options');
+                        if($qtyOptions)
+                            $productIds = array_merge($productIds, array_keys($qtyOptions));
+
+                        break;
+                    case 'grouped':
+                        if (!$this->scopeConfig->getValue(
+                            \FourTell\Recommend\Helper\Data::XML_PATH_ADVANCED_GROUPPROD,
+                            \Magento\Store\Model\ScopeInterface::SCOPE_STORE
+                        )
+                        ) {
+                            $productIds[] = $productId;
+                            $parentIds[] = $productId;
+                        } else {
+                            if (isset($infoBuyRequest['super_product_config']['product_id'])) {
+                                $productId = $infoBuyRequest['super_product_config']['product_id'];
+                                $productIds[] = $productId;
+                                $parentIds[] = $productId;
+                            }
+                        }
+
+                        break;
+                    case 'bundle':
+                        if ($this->scopeConfig->getValue(
+                            \FourTell\Recommend\Helper\Data::XML_PATH_ADVANCED_BUNDLEPROD,
+                            \Magento\Store\Model\ScopeInterface::SCOPE_STORE
+                        )
+                        ) {
+                            $productIds[] = $productId;
+                            $parentIds[] = $productId;
+                        } else {
+                            $qtyOptions = $cartItem->getData('qty_options');
+                            $productIds = array_merge($productIds, array_keys($qtyOptions));
+                            $parentIds = array_merge($parentIds, array_keys($qtyOptions));
+                        }
+                        break;
+                    case 'simple':
+                    case 'virtual':
+                        $productIds[] = $productId;
+                        $parentIds[] = $productId;
+                        break;
+                    default:
+                        $productIds[] = $productId;
+                        $parentIds[] = $productId;
+                }
+            }
+        }
+        if (!empty($productIds)) {
+            $productIds = array_unique($productIds);
+            $skus = $this->productResource->getProductsSku($productIds);
+            foreach($productIds as $id){
+                foreach ($skus as $sku){
+                    if ($id == $sku['entity_id'])
+                        $productSkus[] = $sku['sku'];
+                }
+            }
+        }
+
+        if (!empty($parentIds)) {
+            $parentIds = array_unique($parentIds);
+            $skus = $this->productResource->getProductsSku($parentIds);
+            foreach($parentIds as $id){
+                foreach ($skus as $sku){
+                    if ($id == $sku['entity_id'])
+                        $parentSkus[] = $sku['sku'];
+                }
+            }
+        }
+
+        $res = array(
+            'CartChildIds' => $productIds,
+            'CartParentIds' => $parentIds,
+            'CartChildSkus' => $productSkus,
+            'CartParentSkus' => $parentSkus,
+        );
+
+        return $res;
     }
 }

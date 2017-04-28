@@ -84,7 +84,7 @@ class JsLoader extends \Magento\Config\Block\System\Config\Form\Field
         )->setData(
             [
                 'id' => 'reset_js_button',
-                'label' => __('jQuery Conflict Code'),
+                'label' => __('jQuery No Conflict Code'),
                 'onclick' => 'resetOldLoaderCode();',
                 'style' => 'margin-top:10px'
             ]
