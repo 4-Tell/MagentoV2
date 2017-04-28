@@ -31,10 +31,10 @@ class JsLoader extends \Magento\Config\Block\System\Config\Form\Field
 </script><script type="text/javascript" async src="//4tcdn.blob.core.windows.net/4tjs3/4TellLoader.js?alias=CLIENT_ALIAS&mode=MODE"></script>
 </textarea>';
         $html .= '<textarea id="default_js_loader_code" style="display: none;"><!--4-Tell Recommendations Begin (www.4-tell.com)-->
-<script type="text/javascript" async src="//4tcdn.blob.core.windows.net/4tjs3/4TellLoader.js?alias=CLIENT_ALIAS&mode=MODE"></script>
 <script type="text/javascript">
     window._4TellBoost = {};
 </script>
+<script type="text/javascript" async src="//4tcdn.blob.core.windows.net/4tjs3/4TellLoader.js?alias=CLIENT_ALIAS&mode=MODE"></script>
 </textarea>';
         $html .= "<script type=\"text/javascript\">
                 //<![CDATA[
