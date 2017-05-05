@@ -9,7 +9,6 @@
     <body>
         <referenceContainer name="after.body.start">
             <block class="FourTell\Recommend\Block\Html\Loader" name="recommend.loader" template="FourTell_Recommend::page/loader.phtml"/>
-            <!--<block class="FourTell\Recommend\Block\Html\Variables" name="recommend_variables" template="FourTell_Recommend::variables.phtml" />-->
             <block class="FourTell\Recommend\Block\Html\Loader" name="recommend.variables" template="FourTell_Recommend::recommend_variables.phtml" />
         </referenceContainer>
     </body>
