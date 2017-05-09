@@ -29,12 +29,16 @@ class JsLoader extends \Magento\Config\Block\System\Config\Form\Field
     window._4TellBoost = {};
     window._4TellBoost.jq = jQuery.noConflict(true);
 </script><script type="text/javascript" async src="//4tcdn.blob.core.windows.net/4tjs3/4TellLoader.js?alias=CLIENT_ALIAS&mode=MODE"></script>
+<!--4-Tell Recommendations End-->
 </textarea>';
         $html .= '<textarea id="default_js_loader_code" style="display: none;"><!--4-Tell Recommendations Begin (www.4-tell.com)-->
-<script type="text/javascript">
-    window._4TellBoost = {};
+<script> window._4TellBoost = {}; </script>
+<script>
+    require([\'jquery\'], function(jQuery) {
+        jQuery("head").append(\'<script type="text/javascript" async src="//4tcdnstage.blob.core.windows.net/4tjs3/4TellLoader.js?alias=CLIENT_ALIAS&mode=MODE" />\');
+    });
 </script>
-<script type="text/javascript" async src="//4tcdn.blob.core.windows.net/4tjs3/4TellLoader.js?alias=CLIENT_ALIAS&mode=MODE"></script>
+<!--4-Tell Recommendations End-->
 </textarea>';
         $html .= "<script type=\"text/javascript\">
                 //<![CDATA[
