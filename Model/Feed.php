@@ -135,6 +135,12 @@ class Feed implements FeedInterface
      */
     protected $productResource;
 
+    /**
+     * Customer Group
+     *
+     * @var \Magento\Customer\Model\ResourceModel\Group\Collection
+     */
+    protected $_customerGroup;
 
     /**
      * @param \FourTell\Recommend\Helper\Api $helper
@@ -158,6 +164,7 @@ class Feed implements FeedInterface
      * @param \Magento\CatalogInventory\Api\StockRegistryInterface $stockRegistry
      * @param \Magento\Eav\Api\AttributeRepositoryInterface $attributeRepositoryInterface
      * @param \Magento\Customer\Api\CustomerMetadataInterface $customerMetadataService
+     * @param \Magento\Customer\Model\ResourceModel\Group\Collection $customerGroup
      * @param array $data
      */
     public function __construct(
@@ -183,6 +190,7 @@ class Feed implements FeedInterface
         \Magento\Eav\Api\AttributeRepositoryInterface $attributeRepositoryInterface,
         \Magento\Customer\Api\CustomerMetadataInterface $customerMetadataService,
         \Magento\Catalog\Model\ResourceModel\Product $productResource,
+        \Magento\Customer\Model\ResourceModel\Group\Collection $customerGroup,
         array $data = []
     )
     {
@@ -208,12 +216,14 @@ class Feed implements FeedInterface
         $this->attributeRepository = $attributeRepositoryInterface;
         $this->_customerMetadataService = $customerMetadataService;
         $this->productResource = $productResource;
+        $this->_customerGroup = $customerGroup;
     }
+
 
     public function getCustomers()
     {
         $this->_result = [];
-        $this->resultDataHead = array('CustomerID', 'Email', 'Name', 'Address', 'Address2', 'City', 'State', 'PostalCode', 'Country', 'Phone');
+        $this->resultDataHead = array('CustomerID', 'Email', 'Group', 'Name', 'Address', 'Address2', 'City', 'State', 'PostalCode', 'Country', 'Phone');
         $searchResultDataHead = array_map('strtolower', $this->resultDataHead);
         $extraFields = $this->_helper->getExtraFields();
         if (!empty($extraFields)) {
@@ -271,10 +281,18 @@ class Feed implements FeedInterface
         }
 
         $items = $customerCollection->getItems();
+
+        $customerGroups = $this->_customerGroup->toOptionArray();
+        $groups = [];
+        foreach($customerGroups as $customerGroup){
+            $groups[$customerGroup['value']] = $customerGroup['label'];
+        }
         foreach ($items as $item) {
+            $group = (isset($groups[$item->getGroupId()])) ? $groups[$item->getGroupId()] : '';
             $res = [
                 $item->getId(),
                 $item->getEmail(),
+                $group,
                 $this->getCustomerName($item)
             ];
 
@@ -736,6 +754,12 @@ class Feed implements FeedInterface
             $zone = $zones[$storeIds[0]];
             $activatedAt = new \DateTime($product->getData('created_at'), new \DateTimeZone($zone));
             $modifiedAt = new \DateTime($product->getData('updated_at'), new \DateTimeZone($zone));
+            //fix issue for v.2.1.0
+            try {
+                $listPrice = number_format($product->getFinalPrice(), 2, '.', '');
+            } catch (\Exception $e) {
+                $listPrice = '';
+            }
 
             $resultData = array(
                 $productSku,
@@ -747,7 +771,7 @@ class Feed implements FeedInterface
                 $manufacturerValue,
                 number_format($price, 2, '.', ''),
                 $specialPrice,
-                number_format($product->getFinalPrice(), 2, '.', ''),
+                $listPrice,
                 number_format($priceList, 2, '.', ''),
                 number_format($priceCost, 2, '.', ''),
                 number_format($qty, 0),
