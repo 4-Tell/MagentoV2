@@ -490,7 +490,11 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
         $order = $orderItem->getOrder();
         $skipRow = false;
         $productId = $orderItem->getData('product_id');
-        $productTypeReal = $orderItem->getProduct()->getTypeID();
+        if ($orderItem->getProduct())
+            $productTypeReal = $orderItem->getProduct()->getTypeID();
+        else {
+            $productTypeReal = $orderItem->getProductType();
+        }
 
         switch ($productTypeReal) {
             case \Magento\ConfigurableProduct\Model\Product\Type\Configurable::TYPE_CODE:
@@ -541,11 +545,15 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
             $qty =0;
 
         $sku = $this->productResource->getProductsSku(array($productId));
+        if (empty($sku))
+            $sku = $orderItem->getSku();
+        else
+            $sku = $sku[0]['sku'];
 
-        $res = array(
+            $res = array(
             'product_id' => $productId,
             'qty' => strval($qty),
-            'sku' => $sku[0]['sku']
+            'sku' => $sku
         );
 
         return $res;
