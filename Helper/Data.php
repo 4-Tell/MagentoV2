@@ -176,6 +176,16 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
     protected $_catalogSession;
 
     /**
+     * URL instance
+     *
+     * @var \Magento\Framework\UrlFactory
+     */
+    protected $urlFactory;
+
+    /** @var \Magento\UrlRewrite\Model\UrlFinderInterface */
+    protected $urlFinder;
+
+    /**
      * Construct
      *
      * @param \Magento\Framework\App\Helper\Context $context
@@ -219,7 +229,9 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
         \Magento\GroupedProduct\Model\Product\Type\Grouped $groupedProduct,
         \Magento\Catalog\Api\ProductRepositoryInterface $productRepository,
         \Magento\Catalog\Api\CategoryRepositoryInterface $categoryRepository,
-        \Magento\Catalog\Model\Session $catalogSession
+        \Magento\Catalog\Model\Session $catalogSession,
+        \Magento\Framework\UrlFactory $urlFactory,
+        \Magento\UrlRewrite\Model\UrlFinderInterface $urlFinder
     )
     {
         parent::__construct($context);
@@ -246,6 +258,8 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
         $this->productRepository = $productRepository;
         $this->categoryRepository = $categoryRepository;
         $this->_catalogSession = $catalogSession;
+        $this->urlFactory = $urlFactory;
+        $this->urlFinder = $urlFinder;
     }
 
     /**
@@ -410,7 +424,7 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
             $stores[] = array(
                 'store_id' => $store->getStoreId(),
                 //'group_id' => $store->getGroupId(),
-                // 'code' => $store->getCode(),
+                'code' => $store->getCode(),
                 'name' => $store->getName(),
                 'website_id' => $store->getWebsiteId()
             );
@@ -1111,5 +1125,55 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
         );
 
         return $res;
+    }
+
+    /**
+     * get URL for specific store
+     *
+     * @param int $productId
+     * @param int $storeId
+     * @return string
+     */
+    public function getProductUrlInStore($productId, $storeId)
+    {
+        $productForStore = $this->productRepository->getById($productId, false, $storeId);
+        $url = $productForStore->getUrlModel()->getUrl($productForStore);
+        $url = preg_replace('/\?.*/', '', $url);
+        return $url;
+    }
+
+
+    /**
+     * Retrieve URL Instance
+     *
+     * @return \Magento\Framework\UrlInterface
+     */
+    private function getUrlInstance()
+    {
+        return $this->urlFactory->create();
+    }
+
+
+    /**
+     * get URL for specific store
+     *
+     * @param int $categoryId
+     * @param int $storeId
+     * @return string
+     */
+    public function getCategoryUrlInStore($category, $storeId)
+    {
+        $rewrite = $this->urlFinder->findOneByData([
+            \Magento\UrlRewrite\Service\V1\Data\UrlRewrite::ENTITY_ID => $category->getId(),
+            \Magento\UrlRewrite\Service\V1\Data\UrlRewrite::ENTITY_TYPE => \Magento\CatalogUrlRewrite\Model\CategoryUrlRewriteGenerator::ENTITY_TYPE,
+            \Magento\UrlRewrite\Service\V1\Data\UrlRewrite::STORE_ID => $storeId,
+        ]);
+
+        if ($rewrite)
+            $url = $this->getUrlInstance()->setScope($storeId)->getDirectUrl($rewrite->getRequestPath(), array('_nosid' => true));
+        else
+            $url = $this->categoryRepository->get($category->getId(), $storeId)->getUrl();
+
+        return $url;
     }
 }

@@ -143,6 +143,11 @@ class Feed implements FeedInterface
     protected $_customerGroup;
 
     /**
+     * @var \Magento\Catalog\Model\ResourceModel\Category
+     */
+    protected $_resourceCategory;
+
+    /**
      * @param \FourTell\Recommend\Helper\Api $helper
      * @param CustomerRepositoryInterface $customerRepository
      * @param ProductRepositoryInterface $productRepository
@@ -191,6 +196,8 @@ class Feed implements FeedInterface
         \Magento\Customer\Api\CustomerMetadataInterface $customerMetadataService,
         \Magento\Catalog\Model\ResourceModel\Product $productResource,
         \Magento\Customer\Model\ResourceModel\Group\Collection $customerGroup,
+        \Magento\Catalog\Model\ResourceModel\Category $resourceCategory,
+
         array $data = []
     )
     {
@@ -217,6 +224,7 @@ class Feed implements FeedInterface
         $this->_customerMetadataService = $customerMetadataService;
         $this->productResource = $productResource;
         $this->_customerGroup = $customerGroup;
+        $this->_resourceCategory = $resourceCategory;
     }
 
 
@@ -640,6 +648,14 @@ class Feed implements FeedInterface
                 $attributes = $this->attrCollectionFactory->create()
                     ->addFieldToFilter('attribute_code', array('in' => $extraFieldsSwatch))
                     ->load();
+
+                $storesDetail = $this->_helper->getStores();
+                $storesCode = [];
+                foreach($storesDetail as $storeDetail){
+                    if (in_array($storeDetail['store_id'],$storeIds))
+                        $storesCode[] = $storeDetail['code'];
+                }
+
                 foreach ($extraFields as $extraField) {
                     $extraField = strtolower($extraField);
                     $found = false;
@@ -673,6 +689,21 @@ class Feed implements FeedInterface
                             $extraFieldsValue[] = $this->_helper->getImageUrlByPos($product, $storeIds[0], $imagePos[1]);
                             $found = true;
                             break;
+
+                        case (in_array(@array_shift(explode('.', $extraField)),$storesCode)):
+                            $viewScopeParam = explode('.', $extraField);
+                            foreach($storesDetail as $storeDetail){
+                                if ($storeDetail['code'] == $viewScopeParam[0]){
+                                    $found = true;
+                                    if ($viewScopeParam[1] == 'url_key_4tell')
+                                        $value = $this->_helper->getProductUrlInStore($productId, $storeDetail['store_id']);
+                                    else
+                                        $value = $this->productResource->getAttributeRawValue($product->getEntityId(), $viewScopeParam[1], $storeDetail['store_id']);
+                                    $extraFieldsValue[] = ($value) ? $value : "";
+                                    break;
+                                }
+                            }
+
                         default:
                             foreach ($attributes as $attribute) {
                                 $swatchField = $attribute->getAttributeCode() . '.swatch';
@@ -903,7 +934,6 @@ class Feed implements FeedInterface
     {
         $result = [];
         $result[] = ['CategoryID', 'Name', 'PageLink', 'ImageLink', 'ParentID'];
-
         $clientAlias = $this->_helper->ClientAlias;
         $storeIds = $this->_helper->map($clientAlias);
 
@@ -920,11 +950,62 @@ class Feed implements FeedInterface
             return $customerCount;
         }
 
+        $searchResultDataHead = array_map('strtolower', $result[0]);
+        $extraFields = $this->_helper->getExtraFields();
+        if (!is_null($extraFields)) {
+            foreach ($extraFields as $key => $extraField) {
+                if (!in_array(strtolower($extraField), $searchResultDataHead))
+                    $result[0][] = $extraField;
+                else
+                    unset($extraFields[$key]);
+            }
+        }
+
+        $storesDetail = $this->_helper->getStores();
+        $storesCode = [];
+        foreach($storesDetail as $storeDetail){
+            if (in_array($storeDetail['store_id'],$storeIds))
+                $storesCode[] = $storeDetail['code'];
+        }
+
         foreach ($collection as $category) {
             $imageUrl = $category->getImageUrl();
             if (!$imageUrl)
                 $imageUrl = '';
-            $result[] = [$category->getId(), $category->getName(), $category->getUrl(), $imageUrl, $category->getParentId()];
+
+            $extraFieldsValue = [];
+            foreach ($extraFields as $extraField) {
+                $extraField = strtolower($extraField);
+                $found = false;
+                switch ($extraField) {
+                    case (in_array(@array_shift(explode('.', $extraField)), $storesCode)):
+                        $viewScopeParam = explode('.', $extraField);
+                        foreach ($storesDetail as $storeDetail) {
+                            if ($storeDetail['code'] == $viewScopeParam[0]) {
+                                $found = true;
+                                $this->_logger->debug($storeDetail['store_id']);
+                                if ($viewScopeParam[1] == 'url_key_4tell') {
+                                    $value = $this->_helper->getCategoryUrlInStore($category, $storeDetail['store_id']);
+                                }
+                                else
+                                    $value = $this->_resourceCategory->getAttributeRawValue($category->getId(), $viewScopeParam[1], $storeDetail['store_id']);
+                                $extraFieldsValue[] = ($value) ? $value : "";
+
+                                break;
+                            }
+                        }
+                        break;
+
+                }
+                if (!$found)
+                    $extraFieldsValue[] = "";
+            }
+
+            $fieldsValue = [$category->getId(), $category->getName(), $category->getUrl(), $imageUrl, $category->getParentId()];
+            if (!empty($extraFieldsValue))
+                $result[] = array_merge($fieldsValue, $extraFieldsValue);
+            else
+                $result[] = $fieldsValue;
         }
         return $result;
     }
