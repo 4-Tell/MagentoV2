@@ -523,9 +523,12 @@ class Feed implements FeedInterface
             $productUrl = $product->getUrlModel()->getUrl($product);
             if (is_null($productUrl))
                 $productUrl = '';
-
+            $productUrl = $this->_helper->fixLink($productUrl);
 
             $images = $this->_helper->createImageCache($product);
+            foreach ($images as $key => $value)
+                $images[$key] = $this->_helper->fixLink($value);
+
             $thumbnailNumber = $this->_helper->getThumbnailNumber($storeIds[0]);
             foreach ($storeIds as $storeId){
                 if (isset($images[$storeId][$thumbnailNumber])) {
@@ -695,8 +698,10 @@ class Feed implements FeedInterface
                             foreach($storesDetail as $storeDetail){
                                 if ($storeDetail['code'] == $viewScopeParam[0]){
                                     $found = true;
-                                    if ($viewScopeParam[1] == 'url_key_4tell')
+                                    if ($viewScopeParam[1] == 'url_key_4tell') {
                                         $value = $this->_helper->getProductUrlInStore($productId, $storeDetail['store_id']);
+                                        $value = $this->_helper->fixLink($value);
+                                    }
                                     else
                                         $value = $this->productResource->getAttributeRawValue($product->getEntityId(), $viewScopeParam[1], $storeDetail['store_id']);
                                     $extraFieldsValue[] = ($value) ? $value : "";
@@ -972,6 +977,7 @@ class Feed implements FeedInterface
             $imageUrl = $category->getImageUrl();
             if (!$imageUrl)
                 $imageUrl = '';
+            $imageUrl = $this->_helper->fixLink($imageUrl);
 
             $extraFieldsValue = [];
             foreach ($extraFields as $extraField) {
@@ -983,9 +989,9 @@ class Feed implements FeedInterface
                         foreach ($storesDetail as $storeDetail) {
                             if ($storeDetail['code'] == $viewScopeParam[0]) {
                                 $found = true;
-                                $this->_logger->debug($storeDetail['store_id']);
                                 if ($viewScopeParam[1] == 'url_key_4tell') {
                                     $value = $this->_helper->getCategoryUrlInStore($category, $storeDetail['store_id']);
+                                    $value = $this->_helper->fixLink($value);
                                 }
                                 else
                                     $value = $this->_resourceCategory->getAttributeRawValue($category->getId(), $viewScopeParam[1], $storeDetail['store_id']);
@@ -1001,7 +1007,9 @@ class Feed implements FeedInterface
                     $extraFieldsValue[] = "";
             }
 
-            $fieldsValue = [$category->getId(), $category->getName(), $category->getUrl(), $imageUrl, $category->getParentId()];
+            $categoryUrl = $this->_helper->fixLink($category->getUrl());
+
+            $fieldsValue = [$category->getId(), $category->getName(), $categoryUrl, $imageUrl, $category->getParentId()];
             if (!empty($extraFieldsValue))
                 $result[] = array_merge($fieldsValue, $extraFieldsValue);
             else

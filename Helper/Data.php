@@ -1176,4 +1176,9 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
 
         return $url;
     }
+
+    public function fixLink($url)
+    {
+        return preg_replace('#^http(s)?:#', '', $url);
+    }
 }
