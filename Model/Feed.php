@@ -559,7 +559,10 @@ class Feed implements FeedInterface
                 $alternativeImages = '';
 
             $visibility = $product->getVisibility();
-            $visibilityOptions = \Magento\Catalog\Model\Product\Visibility::getOptionArray();
+            $visibilityValue = \Magento\Catalog\Model\Product\Visibility::getOptionText($visibility);
+            if(is_null($visibilityValue))
+                $visibilityValue = '';
+
             $visible = 1;
             //Not Visible Individually
             if ($visibility == 1)
@@ -817,7 +820,7 @@ class Feed implements FeedInterface
                 $alternativeImages,
                 (string)$avg,
                 $product->getTypeId(),
-                $visibilityOptions[$visibility],
+                $visibilityValue,
                 (string)$statusFlag,
                 $stockAvailability,
                 $activatedAt->format('Y-m-d H:i:sP'),
