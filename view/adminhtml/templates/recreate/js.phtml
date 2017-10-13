@@ -1,0 +1,44 @@
+<?php
+/**
+ * 4-Tell Product Recommendations
+ * Copyright � 2015 4-Tell, Inc. All rights reserved.
+ */
+// @codingStandardsIgnoreFile
+?>
+
+<?php /* @var $block FourTell\Recommend\Block\Adminhtml\Recreate */ ?>
+<?php if($block->getIsRequiredRecreateCache()): ?>
+<script>
+    require([
+        'jquery',
+	'mage/loader',
+        'prototype',
+        'mage/backend/validation',
+        'jquery/validate',
+    ], function (jQuery) {
+        var body = jQuery('body').loader();
+        body.loader('show');
+        ajaxRecreateSubmit(0);
+        function ajaxRecreateSubmit(startId) {
+            jQuery.ajax({
+                showLoader: true,
+                loaderArea: true,
+                url: "<?php /* @escapeNotVerified */ echo $block->getAjaxUrl() ?>", 
+                data: {startId: startId, form_key: FORM_KEY},
+                type: "get", 
+                dataType: 'json',
+                success: function(result){
+                    if (result.status == 'success' && result.startId) {
+                        var body = jQuery('body').loader();
+                        body.loader('show');
+                        ajaxRecreateSubmit(result.startId);
+                    }
+                }
+            }).done(function (data) {
+                var body = jQuery('body').loader();
+                body.loader('hide');
+            });
+        }
+    });	
+</script>
+<?php endif;?>

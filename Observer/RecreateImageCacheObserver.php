@@ -14,13 +14,21 @@ class RecreateImageCacheObserver implements ObserverInterface
      * @var \Magento\Framework\Message\ManagerInterface
      */
     private $messageManager;
+	
+	/**
+     * @var \Magento\Backend\Model\Session
+     */
+    protected $backendSession;
 
     /**
      * @param \Magento\Framework\Message\ManagerInterface
      */
-    public function __construct(\Magento\Framework\Message\ManagerInterface $messageManager)
-    {
+    public function __construct(
+        \Magento\Framework\Message\ManagerInterface $messageManager,
+        \Magento\Backend\Model\Session $backendSession
+    ){
         $this->messageManager = $messageManager;
+        $this->backendSession = $backendSession;
     }
 
     /**
@@ -31,6 +39,7 @@ class RecreateImageCacheObserver implements ObserverInterface
      */
     public function execute(\Magento\Framework\Event\Observer $observer)
     {
-        $this->messageManager->addNoticeMessage( __('Please select ‘Recreate 4-Tell Image Cache’ button in 4-Tell Boost > Display Settings tab so 4-Tell uses the new image cache.'));
+        $this->backendSession->setFourTellImageCache(1);
+        $this->messageManager->addNoticeMessage( __('The Magento cache was cleared, which also removed the 4-Tell recommendation images. The process to re-create the 4-Tell images has been initiated. 4-Tell images will not be displayed in recommendations until the image re-creation process has completed.'));
     }
 }

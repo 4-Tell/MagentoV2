@@ -11,4 +11,7 @@
         <css src="FourTell_Recommend::css/recommend.css"/>
         <!--<css src="jquery/editableMultiselect/css/jquery.multiselect.css"/>-->
     </head>
+    <referenceContainer name="before.body.end">
+        <block class="FourTell\Recommend\Block\Adminhtml\Recreate" name="adminhtml.recommend.recreate" as="recreate" template="FourTell_Recommend::recreate/js.phtml"/>
+    </referenceContainer>
 </page>
