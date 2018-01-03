@@ -1040,7 +1040,12 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
                 $productType = $product->getTypeId();
                 $productId = $product->getData('entity_id');
                 if ($cartItem->getOptionByCode('info_buyRequest')) {
-                    $infoBuyRequest = unserialize($cartItem->getOptionByCode('info_buyRequest')->getValue());
+                    $buyRequest = $cartItem->getOptionByCode('info_buyRequest')->getValue();
+                    if (@unserialize($buyRequest) !== false) {
+                        $infoBuyRequest = unserialize($buyRequest);
+                    } else {
+                        $infoBuyRequest = $this->jsonDecoder->decode($buyRequest, true);
+                    }
                     if (isset($infoBuyRequest['super_product_config']['product_id'])) {
                         $productType = 'grouped';
                     }
