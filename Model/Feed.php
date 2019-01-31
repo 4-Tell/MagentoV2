@@ -491,7 +491,7 @@ class Feed implements FeedInterface
         if ($this->_helper->getFeedMethod() == 'getInventory') {
             foreach ($collection as $product) {
                 $productId = $product->getEntityId();
-                $manageStock = $this->stockRegistry->getStockItem($product->getId())->getUseConfigManageStock();
+                $manageStock = $this->stockRegistry->getStockItem($product->getId())->getManageStock();
                 if ($manageStock)
                     $qty = number_format($this->getProductStockQty($product), 0);
                 else
