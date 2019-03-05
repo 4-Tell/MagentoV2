@@ -176,6 +176,11 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
     protected $_catalogSession;
 
     /**
+     * @var \Magento\Customer\Model\ResourceModel\GroupRepository
+     */
+    protected $_groupRepository;
+
+    /**
      * URL instance
      *
      * @var \Magento\Framework\UrlFactory
@@ -205,6 +210,7 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
      * @param \Magento\Catalog\Model\Product $productModel
      * @param \Magento\Catalog\Model\ResourceModel\Product\Gallery
      * @param \Magento\Catalog\Model\Session $catalogSession
+     * @param \Magento\Customer\Model\ResourceModel\GroupRepository $groupRepository
      */
     public function __construct(
         \Magento\Framework\App\Helper\Context $context,
@@ -230,6 +236,7 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
         \Magento\Catalog\Api\ProductRepositoryInterface $productRepository,
         \Magento\Catalog\Api\CategoryRepositoryInterface $categoryRepository,
         \Magento\Catalog\Model\Session $catalogSession,
+        \Magento\Customer\Model\ResourceModel\GroupRepository $groupRepository,
         \Magento\Framework\UrlFactory $urlFactory,
         \Magento\UrlRewrite\Model\UrlFinderInterface $urlFinder
     )
@@ -258,6 +265,7 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
         $this->productRepository = $productRepository;
         $this->categoryRepository = $categoryRepository;
         $this->_catalogSession = $catalogSession;
+        $this->_groupRepository = $groupRepository;
         $this->urlFactory = $urlFactory;
         $this->urlFinder = $urlFinder;
     }
@@ -992,10 +1000,18 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
         $res = '';
         try {
             $customerSession = $this->_customerSession;
-            if ($customerSession->isLoggedIn())
+            if ($customerSession->isLoggedIn()) {
+                $customerGroupId = $customerSession->getCustomer()->getGroupId();
+                $customerGroup = $this->_groupRepository->getById($customerGroupId);
                 $data['CustomerId'] = $customerSession->getCustomerId();
-            else
+                $data['CustomerGroup'] = $customerGroup->getCode();
+                $data['FirstName'] = $customerSession->getCustomer()->getFirstname();
+            }
+            else {
                 $data['CustomerId'] = '';
+                $data['CustomerGroup'] = '';
+                $data['FirstName'] = '';
+            }
 
             $cartData = $this->productTypeRulesCartProductIds();
             foreach ($cartData as $key => $val) {
