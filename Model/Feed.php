@@ -408,32 +408,52 @@ class Feed implements FeedInterface
             $restrictCollection = $this->_productFactory->create()->getCollection();
             $restrictCollection->addStoreFilter($storeId);
             $attributeRestrict = $this->_helper->getAttributeRestrict($storeId);
+            $restrictAttributeExp = [];
             if (!empty($attributeRestrict)) {
                 if (strcasecmp($attributeRestrict[0], 'category') == 0) {
-                    $categoryCollection = $this->_helper->getStoresCategories($storeIds);
-                    $paths = [];
-                    $catRestrictIds = explode(',', $attributeRestrict[1]);
-                    foreach ($catRestrictIds as $catRestrictId) {
-                        $paths[] = '%/' . $catRestrictId . '/';
-                    }
-                    $categoryCollection->addPathsFilter($paths);
-                    $catRestrictIds = array_merge($catRestrictIds, $categoryCollection->getAllIds());
-                    $restrictCollection->addCategoriesFilter(array('in' => $catRestrictIds));
+                    $itemCollecton = $restrictCollection->addCategoryIds();
+					$catRestrictIds = explode(',', $attributeRestrict[1]);
+					$catProductIds = [];
+					foreach($catRestrictIds as $categoryId){
+						foreach($itemCollecton as $item){
+							if(in_array($categoryId,$item->getCategoryIds())) {
+								$catProductIds[] = $item->getId();
+							}
+						}
+					}
+					$restrictAttributeExp[] = [
+						'attribute'	=> 'entity_id',
+						'in'		=> array_unique($catProductIds)
+					];
                 } else {
-                    $restrictCollection->addAttributeToFilter($attributeRestrict[0], $attributeRestrict[1]);
+					$restrictAttributeExp[] = [
+						'attribute'	=> $attributeRestrict[0],
+						'eq'		=> $attributeRestrict[1]
+					];
                 }
             }
             $visibilityRestrict = $this->_helper->getVisibilityRestrict($storeId);
-            if (!empty($visibilityRestrict))
-                $restrictCollection->setVisibility($visibilityRestrict);
+            if (!empty($visibilityRestrict)){
+				$restrictAttributeExp[] = [
+					'attribute'	=> 'visibility',
+					'in'		=> $visibilityRestrict
+				];
+			}
 
             $statusRestrict = $this->_helper->getStatusRestrict($storeId);
-            if (!empty($statusRestrict))
-                $restrictCollection->addAttributeToFilter('status', ['in' => $statusRestrict]);
-            $trueProductIds = array_merge($trueProductIds, $restrictCollection->getAllIds());
+            if (!empty($statusRestrict)){
+				$restrictAttributeExp[] = [
+					'attribute'	=> 'status',
+					'in'		=> $statusRestrict
+				];
+			}
+			if($restrictAttributeExp){
+				$restrictCollection->addAttributeToFilter($restrictAttributeExp);
+			}
 
+            $trueProductIds = array_merge($trueProductIds, $restrictCollection->getAllIds());
         }
-        $collection->addIdFilter($trueProductIds);
+        $collection->addAttributeToFilter('entity_id', ['nin' => $trueProductIds]);
         if ($this->_helper->isManufacturerEnable($storeIds)) {
             $manufacturerCode = $this->_helper->getManufacturerCode($storeIds);
             if (!empty($manufacturerCode)) {
