@@ -530,21 +530,20 @@ class Feed implements FeedInterface
                 $images[$key] = $this->_helper->fixLink($value);
 
             $thumbnailNumber = $this->_helper->getThumbnailNumber($storeIds[0]);
+            $image = '';
             foreach ($storeIds as $storeId){
                 if (isset($images[$storeId][$thumbnailNumber])) {
                     $image = $images[$storeId][$thumbnailNumber];
                     break;
                 }
             }
-            if (isset($image)){
+            if (!empty($image)){
                 foreach ($storeIds as $storeId){
                     if (isset($images[$storeId][$thumbnailNumber])) {
                         unset($images[$storeId][$thumbnailNumber]);
                     }
                 }
             }
-            else
-                $image = '';
 
             $alternativeImages = array();
             foreach ($storeIds as $storeId){
