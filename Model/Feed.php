@@ -1129,16 +1129,23 @@ class Feed implements FeedInterface
 
             $price = $item->getPrice();
             $originPrice = $item->getData('original_price');
+            $discountedPercent = $item->getDiscountPercent();
             if ($price == 0) {
                 if ($item->getData('product_type') == 'simple'){
                     if ($parentItemId = $item->getData('parent_item_id')){
                         $parentItem = $objectManager->create('Magento\Sales\Model\Order\Item')->load($parentItemId);
                         $price = $parentItem->getPrice();
                         $originPrice = $parentItem->getData('original_price');
+                        $discountedPercent = $parentItem->getDiscountPercent();
                     }
                 }
 
             }
+
+            if($discountedPercent > 0){
+                $price = $price - ($price*($discountedPercent/100));
+            }            
+
             // Need to fix method
             $row = $this->_helper->productTypeRules('sales', $item, $storeIds);
             $qty = $row['qty'];
