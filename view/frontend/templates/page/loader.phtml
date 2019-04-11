@@ -2,7 +2,7 @@
 /* @var $block \FourTell\Recommend\Block\Html\Loader */
 if ($block->isConfigEnable()):
     $jsCode = $block->getJsLoader();
-    $jsCode = str_replace("MODE", $block->getConfigMode(), $jsCode);
-    $jsCode = str_replace("CLIENT_ALIAS", $block->getConfigAlias(), $jsCode);
+    $jsCode = str_replace("{MODE}", $block->getConfigMode(), $jsCode);
+    $jsCode = str_replace("{ALIAS}", $block->getConfigAlias(), $jsCode);
     echo $jsCode;
 endif;

@@ -18,14 +18,8 @@
                 <hide_magento_upsell>1</hide_magento_upsell>
                 <hide_magento_crosssell>1</hide_magento_crosssell>
                 <image_size>200,200</image_size>
-                <js_loader><![CDATA[<!--4-Tell Recommendations Begin (www.4-tell.com)-->
-<script> window._4TellBoost = {}; </script>
-<script>
-    require(['jquery'], function(jQuery) {
-        jQuery("head").append('<script type="text/javascript" async src="//4tellcdn.azureedge.net/4tjs1/4TellLoader.js?alias=CLIENT_ALIAS&mode=MODE" />');
-    });
-</script>
-<!--4-Tell Recommendations End-->]]>
+                <js_loader>
+                    <![CDATA[<!--4-Tell Recommendations Begin (www.4-tell.com)--><script type="text/javascript">window._4TellBoost = {};</script><script type="text/javascript" id="loader4Tell" src="//4tellcdn.azureedge.net/sites/loader.js" data-sitealias="{ALIAS}" data-mode="{MODE}"></script><!--4-Tell Recommendations End-->]]>
                 </js_loader>
             </display_recommendation>
             <advanced_settings>
