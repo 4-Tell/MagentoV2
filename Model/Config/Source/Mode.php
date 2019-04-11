@@ -17,6 +17,7 @@ class Mode implements \Magento\Framework\Option\ArrayInterface
 
     const LIVE = 'live';
     const STAGE = 'stage';
+    const LOCAL = 'local';
 
     /**
      * @return array
@@ -25,7 +26,8 @@ class Mode implements \Magento\Framework\Option\ArrayInterface
     {
         return [
             self::LIVE => __('Live'),
-            self::STAGE => __('Stage')
+            self::STAGE => __('Stage'),
+            self::LOCAL => __('Local')
         ];
     }
 }

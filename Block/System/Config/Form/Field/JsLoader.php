@@ -22,32 +22,11 @@ class JsLoader extends \Magento\Config\Block\System\Config\Form\Field
     {
         $html = $element->getElementHtml();
         $html .= $this->getButtonHtml();
-        $html .= $this->getConflictButtonHtml();
-        $html .= '<textarea id="default_old_js_loader_code" style="display: none;"><!--4-Tell Recommendations Begin (www.4-tell.com)-->
-<script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
-<script type="text/javascript">
-    window._4TellBoost = {};
-    window._4TellBoost.jq = jQuery.noConflict(true);
-</script><script type="text/javascript" async src="//4tellcdn.azureedge.net/4tjs1/4TellLoader.js?alias=CLIENT_ALIAS&mode=MODE"></script>
-<!--4-Tell Recommendations End-->
-</textarea>';
-        $html .= '<textarea id="default_js_loader_code" style="display: none;"><!--4-Tell Recommendations Begin (www.4-tell.com)-->
-<script> window._4TellBoost = {}; </script>
-<script>
-    require([\'jquery\'], function(jQuery) {
-        jQuery("head").append(\'<script type="text/javascript" async src="//4tellcdn.azureedge.net/4tjs1/4TellLoader.js?alias=CLIENT_ALIAS&mode=MODE" />\');
-    });
-</script>
-<!--4-Tell Recommendations End-->
-</textarea>';
+        $html .= '<textarea id="default_js_loader_code" style="display: none;"><!--4-Tell Recommendations Begin (www.4-tell.com)--><script type="text/javascript">window._4TellBoost = {};</script><script type="text/javascript" id="loader4Tell" src="//4tellcdn.azureedge.net/sites/loader.js" data-sitealias="{ALIAS}" data-mode="{MODE}"></script><!--4-Tell Recommendations End--></textarea>';
         $html .= "<script type=\"text/javascript\">
                 //<![CDATA[
                 function resetLoaderCode(){
                     $('recommend_display_recommendation_js_loader').setValue($('default_js_loader_code').getValue());
-                    alert('Click Save Config to save settings.');
-                }
-                function resetOldLoaderCode(){
-                    $('recommend_display_recommendation_js_loader').setValue($('default_old_js_loader_code').getValue());
                     alert('Click Save Config to save settings.');
                 }
                 //]]>
