@@ -7,6 +7,7 @@
 namespace FourTell\Recommend\Model;
 
 use FourTell\Recommend\Api\FeedInterface;
+use FourTell\Recommend\Helper\Data as FourTellHelper;
 use Magento\Customer\Api\CustomerRepositoryInterface;
 use Magento\Catalog\Api\ProductRepositoryInterface;
 use Magento\Framework\Api\FilterBuilder;
@@ -231,7 +232,7 @@ class Feed implements FeedInterface
     public function getCustomers()
     {
         $this->_result = [];
-        $this->resultDataHead = array('CustomerID', 'Email', 'Group', 'Name', 'Address', 'Address2', 'City', 'State', 'PostalCode', 'Country', 'Phone');
+        $this->resultDataHead = array('CustomerID', 'Email', 'Group', 'Name', 'Address', 'Address2', 'City', 'State', 'PostalCode', 'Country', 'Phone', 'DoNotTrack');
         $searchResultDataHead = array_map('strtolower', $this->resultDataHead);
         $extraFields = $this->_helper->getExtraFields();
         if (!empty($extraFields)) {
@@ -245,6 +246,7 @@ class Feed implements FeedInterface
         }
         $this->_result[] = $this->resultDataHead;
         $customerCollection = $this->_customersFactory->create();
+        $customerCollection->addAttributeToSelect(FourTellHelper::FOURTELL_DO_NOT_TRACK_CUSTOMER);
         $clientAlias = $this->_helper->ClientAlias;
         $storeIds = $this->_helper->map($clientAlias);
 
@@ -296,6 +298,12 @@ class Feed implements FeedInterface
             $groups[$customerGroup['value']] = $customerGroup['label'];
         }
         foreach ($items as $item) {
+            if($item->getData(FourTellHelper::FOURTELL_DO_NOT_TRACK_CUSTOMER)){
+                $this->_result[] = [
+                    $item->getId(), '', '', '', '', '', '', '', '', '', '', 'True'
+                ];
+                continue;
+            }
             $group = (isset($groups[$item->getGroupId()])) ? $groups[$item->getGroupId()] : '';
             $res = [
                 $item->getId(),
@@ -331,6 +339,7 @@ class Feed implements FeedInterface
                     $res[] = '';
                 }
             }
+            $res[] = 'False';
             foreach ($res as $key => $value) {
                 if (is_null($value))
                     $res[$key] = '';
