@@ -999,18 +999,19 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
     {
         $res = '';
         try {
-            $customerSession = $this->_customerSession;
-            if ($customerSession->isLoggedIn()) {
-                $customerGroupId = $customerSession->getCustomer()->getGroupId();
-                $customerGroup = $this->_groupRepository->getById($customerGroupId);
-                $data['CustomerId'] = $customerSession->getCustomerId();
+            if ($this->_customerSession->isLoggedIn()) {
+                $customer = $customerSession->getCustomer();
+                $customerGroup = $this->_groupRepository->getById($customer->getGroupId());
+                $doNotTrackFlag = $customer->getData(self::FOURTELL_DO_NOT_TRACK_CUSTOMER);
+                $data['CustomerId'] = $customer->getId();
                 $data['CustomerGroup'] = $customerGroup->getCode();
-                $data['FirstName'] = $customerSession->getCustomer()->getFirstname();
-            }
-            else {
+                $data['FirstName'] = $customer->getFirstname();
+                $data['Email'] = ($doNotTrackFlag) ? '' : $customer->getEmail();
+            } else {
                 $data['CustomerId'] = '';
                 $data['CustomerGroup'] = '';
                 $data['FirstName'] = '';
+                $data['Email'] = '';
             }
 
             $cartData = $this->productTypeRulesCartProductIds();
