@@ -37,6 +37,7 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
     const XML_PATH_HIDE_CROSSSEL = 'recommend/display_recommendation/hide_magento_crosssell';
     const FOURTELL_SERVICE_URL_STAGE = 'stage.4-tell.net';
     const FOURTELL_SERVICE_URL_LIVE = 'live.4-tell.net';
+    const FOURTELL_DO_NOT_TRACK_CUSTOMER = 'do_not_track_4Tell';
 
     /**
      * @var \Magento\Framework\Json\DecoderInterface
