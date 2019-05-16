@@ -42,7 +42,7 @@
                 <field id="mode" translate="label tooltip" type="select" sortOrder="20" showInDefault="1"
                        showInWebsite="1" showInStore="0">
                     <label>Mode</label>
-                    <tooltip>Select Live to receive recommendations from 4-Tell's live servers. Select Stage to receive recommendations from 4-Tell's stage servers.</tooltip>
+                    <tooltip>Select Live to receive recommendations from 4-Tell's live servers. Select Stage to receive recommendations from 4-Tell's stage servers. Local mode is for testing purposes only.</tooltip>
                     <source_model>FourTell\Recommend\Model\Config\Source\Mode</source_model>
                 </field>
                 <field id="ssl_required" translate="label tooltip" type="select" sortOrder="30" showInDefault="1"
