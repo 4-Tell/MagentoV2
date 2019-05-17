@@ -298,13 +298,13 @@ class Feed implements FeedInterface
             $groups[$customerGroup['value']] = $customerGroup['label'];
         }
         foreach ($items as $item) {
+            $group = (isset($groups[$item->getGroupId()])) ? $groups[$item->getGroupId()] : '';
             if($item->getData(FourTellHelper::FOURTELL_DO_NOT_TRACK_CUSTOMER)){
                 $this->_result[] = [
-                    $item->getId(), '', '', '', '', '', '', '', '', '', '', 'True'
+                    $item->getId(), '', $group, '', '', '', '', '', '', '', '', 'True'
                 ];
                 continue;
             }
-            $group = (isset($groups[$item->getGroupId()])) ? $groups[$item->getGroupId()] : '';
             $res = [
                 $item->getId(),
                 $item->getEmail(),
