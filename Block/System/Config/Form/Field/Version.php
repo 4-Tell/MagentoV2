@@ -21,7 +21,7 @@ class Version extends Field
     {
         $version = $this->getVersion();
         //$element->setValue($version);
-        return '<label>'.$version.'</label>'; //$element->getElementHtml();
+        return '<label class="label">'.$version.'</label>'; //$element->getElementHtml();
     }
 
     protected function getVersion()
