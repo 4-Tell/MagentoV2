@@ -18,7 +18,7 @@ class InstallData implements InstallDataInterface
         $this->eavConfig       = $eavConfig;
     }
  
-    public function upgrade(ModuleDataSetupInterface $setup, ModuleContextInterface $context)
+    public function install(ModuleDataSetupInterface $setup, ModuleContextInterface $context)
     {
 
     }
