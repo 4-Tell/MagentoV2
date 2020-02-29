@@ -313,8 +313,13 @@ class Feed implements FeedInterface
             ];
 
             if ($item->getDefaultBilling()) {
-                $customerAddress = $this->_addressRepository->getById($item->getDefaultBilling());
-                $street = $customerAddress->getStreet();
+                try {
+                    $customerAddress = $this->_addressRepository->getById($item->getDefaultBilling());
+                    $street = $customerAddress->getStreet();
+                } catch (\Magento\Framework\Exception\NoSuchEntityException $e) {
+                    // Swallow this. The DB is dirty: address specified in customer_entity is not in customer_address_entity
+                    $this->_logger->info("4-Tell: Customer address specified in the customer_entity table is not in the customer_address_entity table for customer id ".$item->getId());
+                }
                 if (!is_null($street)) {
                     $res[] = $street[0];
                     if (isset($street[1]))
