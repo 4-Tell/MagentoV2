@@ -2,7 +2,7 @@
   "name": "fourtell/recommend",
   "description": "Extension to connect to 4-Tell product recommendation services",
   "type": "magento2-module",
-  "version": "2.2018.1",
+  "version": "2.2020.1",
   "license": [
     "OSL-3.0",
     "AFL-3.0"
