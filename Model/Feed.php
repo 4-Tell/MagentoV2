@@ -522,22 +522,6 @@ class Feed implements FeedInterface
         }
         foreach ($collection as $product) {
             try 
-                $productSku = '';
-                $parentSku = '';
-                $productId = '';
-                $parentId = '';
-                $cat = '';
-                $manufacturerValue = '';
-                $price = '';
-                $specialPrice = '';
-                $listPrice = '';
-                $productUrl = '';
-                $image = '';
-                $alternativeImages = [];
-                $visibilityValue = '';
-                $stockAvailability = '';
-                $activatedAt = '';
-                $modifiedAt = '';
                 $parentIds = [];
                 $parentSkus = [];
                 $productId = $product->getEntityId();
