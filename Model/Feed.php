@@ -521,11 +521,12 @@ class Feed implements FeedInterface
             return $this->resultData;
         }
         foreach ($collection as $product) {
-            try 
+            try {
                 $productSku = '';
                 $parentSku = '';
                 $productId = '';
                 $parentId = '';
+                $avg = '';
                 $cat = '';
                 $manufacturerValue = '';
                 $price = '';
@@ -540,8 +541,12 @@ class Feed implements FeedInterface
                 $modifiedAt = '';
                 $parentIds = [];
                 $parentSkus = [];
+                $extraFieldsValue = [];
+                $extraFieldsSwatch = [];
+                $storesCode = [];
                 $productId = $product->getEntityId();
                 $productSku = $product->getSku();
+
                 if (empty($productSku))
                 {
                     $this->_logger->critical("Skipping productId ".$productId." because it has no SKU");
@@ -569,20 +574,21 @@ class Feed implements FeedInterface
                     $images[$key] = $this->_helper->fixLink($value);
 
                 $thumbnailNumber = $this->_helper->getThumbnailNumber($storeIds[0]);
-                $image = '';
                 foreach ($storeIds as $storeId){
                     if (isset($images[$storeId][$thumbnailNumber])) {
                         $image = $images[$storeId][$thumbnailNumber];
                         break;
                     }
                 }
-                if (!empty($image)){
+                if (isset($image)){
                     foreach ($storeIds as $storeId){
                         if (isset($images[$storeId][$thumbnailNumber])) {
                             unset($images[$storeId][$thumbnailNumber]);
                         }
                     }
                 }
+                else
+                    $image = '';
 
                 $alternativeImages = array();
                 foreach ($storeIds as $storeId){
@@ -665,10 +671,6 @@ class Feed implements FeedInterface
                     $parentId = implode(',', $parentIds);
                     $parentSku = implode(',', $parentSkus);
                 }
-                else {
-                    $parentId = '';
-                    $parentSku = '';
-                }
 
                 if (!$summaryData = $product->getRatingSummary()) {
                     $this->_reviewFactory->create()->getEntitySummary($product, $storeIds[0]);
@@ -678,24 +680,20 @@ class Feed implements FeedInterface
                 //5 star
                 if ($ratingPercent)
                     $avg = round($ratingPercent * 5 / 100);
-                else
-                    $avg = '';
-
-                $extraFieldsValue = [];
-                $extraFieldsSwatch = [];
-                foreach ($extraFields as $extraField) {
-                    $extraFieldsSwatch[] = str_replace('.swatch', '', $extraField);
-                }
 
                 if (!is_null($extraFields)) {
+                    
+                    foreach ($extraFields as $extraField) {
+                        $extraFieldsSwatch[] = str_replace('.swatch', '', $extraField);
+                    }
+
                     /** @var \Magento\Eav\Model\ResourceModel\Entity\Attribute\Option\Collection $attributes */
                     $attributes = $this->attrCollectionFactory->create()
                         ->addFieldToFilter('attribute_code', array('in' => $extraFieldsSwatch))
                         ->load();
 
                     $storesDetail = $this->_helper->getStores();
-                    $storesCode = [];
-                    foreach($storesDetail as $storeDetail){
+                    foreach($storesDetail as $storeDetail) {
                         if (in_array($storeDetail['store_id'],$storeIds))
                             $storesCode[] = $storeDetail['code'];
                     }
@@ -864,7 +862,6 @@ class Feed implements FeedInterface
                     $activatedAt->format('Y-m-d H:i:sP'),
                     $modifiedAt->format('Y-m-d H:i:sP')
                 );
-
 
                 foreach ($extraFieldsValue as $extraFieldValue) {
                     $resultData[] = $extraFieldValue;
