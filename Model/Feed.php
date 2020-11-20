@@ -580,15 +580,13 @@ class Feed implements FeedInterface
                         break;
                     }
                 }
-                if (isset($image)){
+                if (!empty($image)){
                     foreach ($storeIds as $storeId){
                         if (isset($images[$storeId][$thumbnailNumber])) {
                             unset($images[$storeId][$thumbnailNumber]);
                         }
                     }
                 }
-                else
-                    $image = '';
 
                 $alternativeImages = array();
                 foreach ($storeIds as $storeId){
@@ -670,6 +668,10 @@ class Feed implements FeedInterface
                     }
                     $parentId = implode(',', $parentIds);
                     $parentSku = implode(',', $parentSkus);
+                }
+                else {
+                    $parentId = '';
+                    $parentSku = '';
                 }
 
                 if (!$summaryData = $product->getRatingSummary()) {

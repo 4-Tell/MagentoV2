@@ -83,8 +83,8 @@
                        showInWebsite="1" showInStore="0">
                     <label>Image Size</label>
                     <frontend_model>FourTell\Recommend\Block\System\Config\Form\Field\ImageSize</frontend_model>
-                    <validate>validate-digits validate-digits-range digits-range-30-600</validate>
-                    <comment>min: 30 , max: 600</comment>
+                    <validate>validate-digits validate-digits-range digits-range-30-1500</validate>
+                    <comment>min: 30 , max: 1500</comment>
                 </field>
                 <field id="thumbnail_number" translate="label tooltip" type="select" sortOrder="30" showInDefault="1"
                        showInWebsite="1" showInStore="0">
