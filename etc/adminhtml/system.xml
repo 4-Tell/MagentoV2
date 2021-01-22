@@ -188,7 +188,7 @@
                         <label>By Visibility</label>
                         <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                         <backend_model>FourTell\Recommend\Model\Config\Source\RestrictVisibilityEnable</backend_model>
-                        <tooltip>et to Yes if you want to restrict the catalog feed to those products whose visibility
+                        <tooltip>Set to Yes if you want to restrict the catalog feed to those products whose visibility
                             is set to the specified value, set to No otherwise
                         </tooltip>
                     </field>
