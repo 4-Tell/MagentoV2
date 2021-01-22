@@ -7,7 +7,9 @@
 namespace FourTell\Recommend\Block\System\Config\Form\Field;
 
 use Magento\Config\Block\System\Config\Form\Field;
+use Magento\Framework\App\ObjectManager;
 use Magento\Framework\Data\Form\Element\AbstractElement;
+use Magento\Framework\Module\ModuleListInterface;
 
 class Version extends Field
 {
@@ -26,7 +28,7 @@ class Version extends Field
 
     protected function getVersion()
     {
-        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
-        return $objectManager->get('\Magento\Framework\Module\ModuleListInterface')->getOne(self::MODULE_NAME)['setup_version'];
+        $objectManager = ObjectManager::getInstance();
+        return $objectManager->get(ModuleListInterface::class)->getOne(self::MODULE_NAME)['setup_version'];
     }
 }

@@ -8,10 +8,12 @@ namespace FourTell\Recommend\Model;
 
 use FourTell\Recommend\Api\FeedInterface;
 use FourTell\Recommend\Helper\Data as FourTellHelper;
+use Magento\Bundle\Model\Product\Type;
 use Magento\Customer\Api\CustomerRepositoryInterface;
 use Magento\Catalog\Api\ProductRepositoryInterface;
 use Magento\Framework\Api\FilterBuilder;
 use Magento\Framework\Api\SearchCriteriaBuilder;
+use Magento\GroupedProduct\Model\Product\Type\Grouped;
 use Magento\ImportExport\Model\Export\Adapter\Csv;
 use \DateTime;
 use \stdClass;
@@ -232,7 +234,7 @@ class Feed implements FeedInterface
     public function getCustomers()
     {
         $this->_result = [];
-        $this->resultDataHead = array('CustomerID', 'Email', 'Group', 'Name', 'Address', 'Address2', 'City', 'State', 'PostalCode', 'Country', 'Phone', 'DoNotTrack');
+        $this->resultDataHead = ['CustomerID', 'Email', 'Group', 'Name', 'Address', 'Address2', 'City', 'State', 'PostalCode', 'Country', 'Phone', 'DoNotTrack'];
         $searchResultDataHead = array_map('strtolower', $this->resultDataHead);
         $extraFields = $this->_helper->getExtraFields();
         if (!empty($extraFields)) {
@@ -253,9 +255,7 @@ class Feed implements FeedInterface
         //DateRange
         $dateRange = $this->_helper->getDateRange();
         if ($dateRange) {
-            $filterDateRange = array(
-                'from' => $dateRange[0],
-            );
+            $filterDateRange = ['from' => $dateRange[0]];
 
             if (isset($dateRange[1])) {
                 $plusOneDay = $this->_helper->plusOneDay($dateRange[1], $format = 'Y-m-d');
@@ -282,7 +282,7 @@ class Feed implements FeedInterface
             $customerCollection->getSelect()
                 ->where("($whereCreatedAt) || ($whereUpdatedAt) || $whereSOCreatedAt");
         }
-        $customerCollection->addFieldToFilter('store_id', array('in' => $storeIds));
+        $customerCollection->addFieldToFilter('store_id', ['in' => $storeIds]);
 
         if ($this->_helper->ResultType == 'Count') {
             $customerCount = new stdClass();
@@ -387,13 +387,13 @@ class Feed implements FeedInterface
     {
         switch ($this->_helper->getFeedMethod()) {
             case 'getInventory':
-                $this->resultDataHead = array('ProductID', 'Inventory');
+                $this->resultDataHead = ['ProductID', 'Inventory'];
                 break;
 
             default:
-                $this->resultDataHead = array('SKU', 'ParentSKU', 'InternalID', 'ParentID', 'Name', 'CategoryIDs',
+                $this->resultDataHead = ['SKU', 'ParentSKU', 'InternalID', 'ParentID', 'Name', 'CategoryIDs',
                     'ManufacturerID', 'Price', 'SalePrice', 'PromotionPrice', 'ListPrice', 'Cost', 'Inventory', 'Visible', 'Link', 'ImageLink', 'AltViewImageLinks', 'Ratings',
-                    'ProductType', 'Visibility', 'Active', 'StockAvailability', 'ActivatedDate', 'ModifiedDate');
+                    'ProductType', 'Visibility', 'Active', 'StockAvailability', 'ActivatedDate', 'ModifiedDate'];
                 break;
         }
         // Create file header
@@ -417,7 +417,7 @@ class Feed implements FeedInterface
 
         $collection = $this->_productFactory->create()->getCollection();
         // restrict collection
-        $trueProductIds = array();
+        $trueProductIds = [];
         foreach ($storeIds as $storeId) {
             $restrictCollection = $this->_productFactory->create()->getCollection();
             $restrictCollection->addStoreFilter($storeId);
@@ -467,10 +467,10 @@ class Feed implements FeedInterface
         $dateRange = $this->_helper->getDateRange();
 
         if ($dateRange) {
-            $filterDateRange = array(
+            $filterDateRange = [
                 'from' => $dateRange[0],
                 'date' => true
-            );
+            ];
             if (isset($dateRange[1])) {
                 $plusOneDay = $this->_helper->plusOneDay($dateRange[1], $format = 'Y-m-d');
                 $filterDateRange['to'] = $plusOneDay;
@@ -516,7 +516,7 @@ class Feed implements FeedInterface
                 if ($status == \Magento\Catalog\Model\Product\Attribute\Source\Status::STATUS_DISABLED)
                     $qty = 0;
 
-                $this->resultData[] = array($productId, $qty);
+                $this->resultData[] = [$productId, $qty];
             }
             return $this->resultData;
         }
@@ -551,7 +551,7 @@ class Feed implements FeedInterface
                 {
                     $this->_logger->critical("Skipping productId ".$productId." because it has no SKU");
                     // Append an error row to the resultData product array. 
-                    $this->resultData[] = array("ERROR-".$productId, null, $productId, null, $product->getName()." - ERROR: No SKU");
+                    $this->resultData[] = ["ERROR-".$productId, null, $productId, null, $product->getName()." - ERROR: No SKU"];
                     continue;                    
                 }
                 
@@ -588,7 +588,7 @@ class Feed implements FeedInterface
                     }
                 }
 
-                $alternativeImages = array();
+                $alternativeImages = [];
                 foreach ($storeIds as $storeId){
                     if (isset($images[$storeId]))
                         $alternativeImages = array_merge($alternativeImages, $images[$storeId]);
@@ -691,7 +691,7 @@ class Feed implements FeedInterface
 
                     /** @var \Magento\Eav\Model\ResourceModel\Entity\Attribute\Option\Collection $attributes */
                     $attributes = $this->attrCollectionFactory->create()
-                        ->addFieldToFilter('attribute_code', array('in' => $extraFieldsSwatch))
+                        ->addFieldToFilter('attribute_code', ['in' => $extraFieldsSwatch])
                         ->load();
 
                     $storesDetail = $this->_helper->getStores();
@@ -703,14 +703,15 @@ class Feed implements FeedInterface
                     foreach ($extraFields as $extraField) {
                         $extraField = strtolower($extraField);
                         $found = false;
+                        $extraFieldExploded = explode('.', $extraField);
                         switch ($extraField) {
                             case 'maxprice':
                                 $maxPrice = null;
-                                if ($product->getTypeId() == \Magento\Bundle\Model\Product\Type::TYPE_CODE ){
+                                if ($product->getTypeId() == Type::TYPE_CODE ){
                                     $finalPrice = $product->getPriceInfo()->getPrice('final_price');
                                     $maxPrice = $finalPrice->getMaximalPrice()->getValue();
                                 }
-                                if ($product->getTypeId() == \Magento\GroupedProduct\Model\Product\Type\Grouped::TYPE_CODE){
+                                if ($product->getTypeId() == Grouped::TYPE_CODE){
                                     $maxPrice = $this->_helper->getGroupedMaxPrice($product);
                                 }
                                 $extraFieldsValue[] = (!is_null($maxPrice)) ? number_format($maxPrice, 2, '.', '') : '';
@@ -729,13 +730,13 @@ class Feed implements FeedInterface
                                 $found = true;
                                 break;
                             case (strpos($extraField, 'image.') !== false):
-                                $imagePos = explode('.', $extraField);
+                                $imagePos = $extraFieldExploded;
                                 $extraFieldsValue[] = $this->_helper->getImageUrlByPos($product, $storeIds[0], $imagePos[1]);
                                 $found = true;
                                 break;
 
-                            case (in_array(@array_shift(explode('.', $extraField)),$storesCode)):
-                                $viewScopeParam = explode('.', $extraField);
+                            case (in_array(array_shift($extraFieldExploded), $storesCode)):
+                                $viewScopeParam = $extraFieldExploded;
                                 foreach($storesDetail as $storeDetail){
                                     if ($storeDetail['code'] == $viewScopeParam[0]){
                                         $found = true;
@@ -745,7 +746,7 @@ class Feed implements FeedInterface
                                         }
                                         else
                                             $value = $this->productResource->getAttributeRawValue($product->getEntityId(), $viewScopeParam[1], $storeDetail['store_id']);
-                                        $extraFieldsValue[] = ($value) ? $value : "";
+                                            $extraFieldsValue[] = ($value) ? $value : "";
                                         break;
                                     }
                                 }
@@ -815,12 +816,12 @@ class Feed implements FeedInterface
 
                 $price = $product->getPrice();
 
-                if ($product->getTypeId() == \Magento\Bundle\Model\Product\Type::TYPE_CODE ){
+                if ($product->getTypeId() == Type::TYPE_CODE ){
                     $finalPrice = $product->getPriceInfo()->getPrice('final_price');
                     $price = $finalPrice->getMinimalPrice()->getValue();
     //                $_maximalPrice = $bundleObj->getMaximalPrice()->getValue();
                 }
-                if ($product->getTypeId() == \Magento\GroupedProduct\Model\Product\Type\Grouped::TYPE_CODE){
+                if ($product->getTypeId() == Grouped::TYPE_CODE){
                     $finalPrice = $product->getPriceInfo()->getPrice('final_price');
                     $price = $finalPrice->getMinimalPrice()->getValue();
                     //$maxPrice = $this->_helper->getGroupedMaxPrice($product);
@@ -838,7 +839,7 @@ class Feed implements FeedInterface
                     $listPrice = '';
                 }
 
-                $resultData = array(
+                $resultData = [
                     $productSku,
                     $parentSku,
                     $productId,
@@ -863,7 +864,7 @@ class Feed implements FeedInterface
                     $stockAvailability,
                     $activatedAt->format('Y-m-d H:i:sP'),
                     $modifiedAt->format('Y-m-d H:i:sP')
-                );
+                ];
 
                 foreach ($extraFieldsValue as $extraFieldValue) {
                     $resultData[] = $extraFieldValue;
@@ -874,7 +875,7 @@ class Feed implements FeedInterface
                 $this->_logger->critical("Exception while parsing productId ".$productId);
                 $this->_logger->critical($e);
                 // Append an error row to the resultData product array. 
-                $this->resultData[] = array("ERROR-".$productId, null, $productId, null, $product->getName()." - ERROR: ".$e);
+                $this->resultData[] = ["ERROR-".$productId, null, $productId, null, $product->getName()." - ERROR: ".$e];
                 continue;                    
             }
         }
@@ -913,7 +914,7 @@ class Feed implements FeedInterface
     function getManufacturerNames()
     {
         $result = [];
-        $result[] = array('ID', 'Name');
+        $result[] = ['ID', 'Name'];
         $clientAlias = $this->_helper->ClientAlias;
         $storeIds = $this->_helper->map($clientAlias);
         if (empty($storeIds))
@@ -955,9 +956,9 @@ class Feed implements FeedInterface
             if ($options['totalRecords']) {
                 foreach ($options['items'] as $option) {
                     if (!empty($option['store_default_value']))
-                        $result[] = array($option['option_id'], $option['store_default_value']);
+                        $result[] = [$option['option_id'], $option['store_default_value']];
                     else
-                        $result[] = array($option['option_id'], $option['value']);
+                        $result[] = [$option['option_id'], $option['value']];
                 }
             }
         }
@@ -1030,9 +1031,10 @@ class Feed implements FeedInterface
             foreach ($extraFields as $extraField) {
                 $extraField = strtolower($extraField);
                 $found = false;
+                $extraFieldExploded = explode('.', $extraField);
                 switch ($extraField) {
-                    case (in_array(@array_shift(explode('.', $extraField)), $storesCode)):
-                        $viewScopeParam = explode('.', $extraField);
+                    case (in_array(array_shift($extraFieldExploded), $storesCode)):
+                        $viewScopeParam = $extraFieldExploded;
                         foreach ($storesDetail as $storeDetail) {
                             if ($storeDetail['code'] == $viewScopeParam[0]) {
                                 $found = true;
@@ -1074,7 +1076,7 @@ class Feed implements FeedInterface
     {
         $result = [];
         //Head
-        $result[] = array('OrderID', 'SKU', 'CustomerID', 'Quantity', 'ItemPrice', 'FullPrice', 'Date', 'ModifiedDate');
+        $result[] = ['OrderID', 'SKU', 'CustomerID', 'Quantity', 'ItemPrice', 'FullPrice', 'Date', 'ModifiedDate'];
         $clientAlias = $this->_helper->ClientAlias;
         $storeIds = $this->_helper->map($clientAlias);
         if (empty($storeIds))
@@ -1086,16 +1088,16 @@ class Feed implements FeedInterface
 
         /* TODO: ??? 'product_type' -> 'type_id' */
         //It should send the product ID for the purchased product, and not the Configurable parent ID.
-        $collection->addFieldToFilter('product_type', array('neq' => 'configurable'));
+        $collection->addFieldToFilter('product_type', ['neq' => 'configurable']);
 
         //DateRange
         $dateRange = $this->_helper->getDateRange();
 
         if ($dateRange) {
-            $filterDateRange = array(
+            $filterDateRange = [
                 'from' => $dateRange[0],
                 'date' => true
-            );
+            ];
             if (isset($dateRange[1])) {
                 $plusOneDay = $this->_helper->plusOneDay($dateRange[1], $format = 'Y-m-d');
                 $filterDateRange['to'] = $plusOneDay;
@@ -1110,12 +1112,12 @@ class Feed implements FeedInterface
 //            $collection->getSelect()->joinLeft(array('so' => $sales_order_table), 'main_table.order_id = so.entity_id', array('so.status'));
 //            $collection->getSelect()->where("qty_refunded > 0 || status='canceled'");
 //        }
-        $orderItemBundle = array();
+        $orderItemBundle = [];
         $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
 
-        $orderItemGrouped = array();
+        $orderItemGrouped = [];
         // Loop through the collection data
-        $groupedPrice = array();
+        $groupedPrice = [];
         foreach ($collection as $item) {
             $productType = $item->getData('product_type');
             if (($productType == 'grouped') && $this->_helper->getConfig(\FourTell\Recommend\Helper\Data::XML_PATH_ADVANCED_GROUPPROD, is_null($storeIds) ? $storeIds : $storeIds[0])) {
@@ -1214,7 +1216,7 @@ class Feed implements FeedInterface
                 }
                 $price = str_replace(",", "", number_format($price, 2));
                 $originPrice = str_replace(",", "", number_format($originPrice, 2));
-                $result[] = array($order->getData('increment_id'), $row['sku'], $customerId, (string)$qty, $price, $originPrice, $createdAt, $updatedAt);
+                $result[] = [$order->getData('increment_id'), $row['sku'], $customerId, (string)$qty, $price, $originPrice, $createdAt, $updatedAt];
                 //$row['qty'], $row['qty_canceled'], $price, $dt->format('Y-m-d H:i:sP'));
             }
         }
