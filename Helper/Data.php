@@ -1001,7 +1001,7 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
         $res = '';
         try {
             if ($this->_customerSession->isLoggedIn()) {
-                $customer = $customerSession->getCustomer();
+                $customer = $this->_customerSession->getCustomer();
                 $customerGroup = $this->_groupRepository->getById($customer->getGroupId());
                 $doNotTrackFlag = $customer->getData(self::FOURTELL_DO_NOT_TRACK_CUSTOMER);
                 $data['CustomerId'] = $customer->getId();
