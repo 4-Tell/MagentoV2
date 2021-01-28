@@ -17,11 +17,20 @@ class Api extends Data
     const XML_SSL_REQUIRED = 'recommend/general_settings/ssl_required';
     const XML_SERVICE_KEY = 'recommend/general_settings/service_key';
 
-    protected $_validKeys = array('ClientAlias','ServiceKey','DataGroup','ResultType','Mode','DateRange','RowRange','ExtraFields');
-    protected $_validValues = array(
-        'DataGroup' => array('Catalog','Sales','CategoryNames', 'ManufacturerNames', 'Customers', 'Version', 'Inventory', 'Returns'),
-        'ResultType' => array('Data','Count')
-    );
+    protected $_validKeys = [
+        'ClientAlias',
+        'ServiceKey',
+        'DataGroup',
+        'ResultType',
+        'Mode',
+        'DateRange',
+        'RowRange',
+        'ExtraFields'
+    ];
+    protected $_validValues = [
+        'DataGroup' => ['Catalog','Sales','CategoryNames', 'ManufacturerNames', 'Customers', 'Version', 'Inventory', 'Returns'],
+        'ResultType' => ['Data','Count']
+    ];
 
     public $ClientAlias=null;
     protected $ServiceKey=null;
@@ -33,7 +42,7 @@ class Api extends Data
 
     public function getExtraFields(){
         $result = $this->ExtraFields;
-        if (!is_null($this->ExtraFields) && !is_array($this->ExtraFields)){
+        if ($this->ExtraFields !== null && !is_array($this->ExtraFields)){
             $result = explode(",", $this->ExtraFields);
             $result = array_unique($result);
             $this->ExtraFields = $result;

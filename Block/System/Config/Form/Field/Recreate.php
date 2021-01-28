@@ -8,10 +8,14 @@
 
 namespace FourTell\Recommend\Block\System\Config\Form\Field;
 
+use Magento\Backend\Block\Widget\Button;
+use Magento\Config\Block\System\Config\Form\Field;
+use Magento\Framework\Data\Form\Element\AbstractElement;
+
 /**
  * Recreated button renderer
  */
-class Recreate extends \Magento\Config\Block\System\Config\Form\Field
+class Recreate extends Field
 {
     /**
      * @var string
@@ -34,12 +38,12 @@ class Recreate extends \Magento\Config\Block\System\Config\Form\Field
     /**
      * Return element html
      *
-     * @param  \Magento\Framework\Data\Form\Element\AbstractElement $element
+     * @param  AbstractElement $element
      * @return string
      *
      * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
-    protected function _getElementHtml(\Magento\Framework\Data\Form\Element\AbstractElement $element)
+    protected function _getElementHtml(AbstractElement $element)
     {
         return $this->_toHtml();
     }
@@ -62,7 +66,7 @@ class Recreate extends \Magento\Config\Block\System\Config\Form\Field
     public function getButtonHtml()
     {
         $button = $this->getLayout()->createBlock(
-            'Magento\Backend\Block\Widget\Button'
+            Button::class
         )->setData(
             [
                 'id' => 'recreate_button',

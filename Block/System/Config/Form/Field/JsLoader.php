@@ -8,6 +8,8 @@
 
 namespace FourTell\Recommend\Block\System\Config\Form\Field;
 
+use Magento\Backend\Block\Widget\Button;
+
 class JsLoader extends \Magento\Config\Block\System\Config\Form\Field
 {
     /**
@@ -45,7 +47,7 @@ class JsLoader extends \Magento\Config\Block\System\Config\Form\Field
     public function getButtonHtml()
     {
         $button = $this->getLayout()->createBlock(
-            'Magento\Backend\Block\Widget\Button'
+            Button::class
         )->setData(
             [
                 'id' => 'reset_js_button',
@@ -66,7 +68,7 @@ class JsLoader extends \Magento\Config\Block\System\Config\Form\Field
     public function getConflictButtonHtml()
     {
         $button = $this->getLayout()->createBlock(
-            'Magento\Backend\Block\Widget\Button'
+            Button::class
         )->setData(
             [
                 'id' => 'reset_js_button',

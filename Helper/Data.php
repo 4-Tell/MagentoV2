@@ -8,6 +8,7 @@ namespace FourTell\Recommend\Helper;
 use Magento\Framework\App\ResourceConnection;
 use FourTell\Recommend\Model\Query;
 use Magento\Catalog\Pricing\Price\FinalPrice;
+use Magento\Framework\Serialize\SerializerInterface;
 use Magento\Framework\Webapi\Exception;
 
 /**
@@ -192,6 +193,11 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
     protected $urlFinder;
 
     /**
+     * @var SerializerInterface
+     */
+    private $serializer;
+
+    /**
      * Construct
      *
      * @param \Magento\Framework\App\Helper\Context $context
@@ -239,7 +245,8 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
         \Magento\Catalog\Model\Session $catalogSession,
         \Magento\Customer\Model\ResourceModel\GroupRepository $groupRepository,
         \Magento\Framework\UrlFactory $urlFactory,
-        \Magento\UrlRewrite\Model\UrlFinderInterface $urlFinder
+        \Magento\UrlRewrite\Model\UrlFinderInterface $urlFinder,
+        SerializerInterface $serializer
     )
     {
         parent::__construct($context);
@@ -269,6 +276,7 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
         $this->_groupRepository = $groupRepository;
         $this->urlFactory = $urlFactory;
         $this->urlFinder = $urlFinder;
+        $this->serializer = $serializer;
     }
 
     /**
@@ -629,7 +637,7 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
             $imageSize = $this->getImageSize($storeId);
             foreach($alternativeViews as $thumbnail_number) {
                 $imageFile = '';
-                if ((int)$thumbnail_number > 0 and (int)$thumbnail_number < 21) {
+                if ((int)$thumbnail_number > 0 && (int)$thumbnail_number < 21) {
                     $mediaGallery = $product->getMediaGalleryImages();
                     if ($mediaGallery instanceof \Magento\Framework\Data\Collection) {
                         foreach ($mediaGallery as $image) {
@@ -1059,10 +1067,15 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
                 $productId = $product->getData('entity_id');
                 if ($cartItem->getOptionByCode('info_buyRequest')) {
                     $buyRequest = $cartItem->getOptionByCode('info_buyRequest')->getValue();
-                    if (@unserialize($buyRequest) !== false) {
-                        $infoBuyRequest = unserialize($buyRequest);
-                    } else {
-                        $infoBuyRequest = $this->jsonDecoder->decode($buyRequest, true);
+
+                    try {
+                        if ($this->serializer->unserialize($buyRequest) !== false) {
+                            $infoBuyRequest = $this->serializer->unserialize(($buyRequest));
+                        } else {
+                            $infoBuyRequest = $this->jsonDecoder->decode($buyRequest);
+                        }
+                    } catch (\InvalidArgumentException $e) {
+                        $infoBuyRequest = $this->jsonDecoder->decode($buyRequest);
                     }
                     if (isset($infoBuyRequest['super_product_config']['product_id'])) {
                         $productType = 'grouped';

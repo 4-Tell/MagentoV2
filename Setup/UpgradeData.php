@@ -10,6 +10,7 @@ use Magento\Eav\Model\Config;
 use Magento\Customer\Model\Customer;
 use Magento\Eav\Model\Entity\Attribute\ScopedAttributeInterface;
 use FourTell\Recommend\Helper\Data as FourTellHelper;
+use Magento\Eav\Model\Entity\Attribute\Source\Boolean;
  
 class UpgradeData implements UpgradeDataInterface
 {
@@ -39,7 +40,7 @@ class UpgradeData implements UpgradeDataInterface
 					'default' 	   => 0,
 					'position'     => 85,
 					'global'       => ScopedAttributeInterface::SCOPE_WEBSITE,
-					'source'       => 'Magento\Eav\Model\Entity\Attribute\Source\Boolean'
+					'source'       => Boolean::class
 				]
 			);
 
