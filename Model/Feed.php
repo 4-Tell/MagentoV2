@@ -8,10 +8,12 @@ namespace FourTell\Recommend\Model;
 
 use FourTell\Recommend\Api\FeedInterface;
 use FourTell\Recommend\Helper\Data as FourTellHelper;
+use Magento\Bundle\Model\Product\Type;
 use Magento\Customer\Api\CustomerRepositoryInterface;
 use Magento\Catalog\Api\ProductRepositoryInterface;
 use Magento\Framework\Api\FilterBuilder;
 use Magento\Framework\Api\SearchCriteriaBuilder;
+use Magento\GroupedProduct\Model\Product\Type\Grouped;
 use Magento\ImportExport\Model\Export\Adapter\Csv;
 use \DateTime;
 use \stdClass;
@@ -232,7 +234,7 @@ class Feed implements FeedInterface
     public function getCustomers()
     {
         $this->_result = [];
-        $this->resultDataHead = array('CustomerID', 'Email', 'Group', 'Name', 'Address', 'Address2', 'City', 'State', 'PostalCode', 'Country', 'Phone', 'DoNotTrack');
+        $this->resultDataHead = ['CustomerID', 'Email', 'Group', 'Name', 'Address', 'Address2', 'City', 'State', 'PostalCode', 'Country', 'Phone', 'DoNotTrack'];
         $searchResultDataHead = array_map('strtolower', $this->resultDataHead);
         $extraFields = $this->_helper->getExtraFields();
         if (!empty($extraFields)) {
@@ -253,9 +255,7 @@ class Feed implements FeedInterface
         //DateRange
         $dateRange = $this->_helper->getDateRange();
         if ($dateRange) {
-            $filterDateRange = array(
-                'from' => $dateRange[0],
-            );
+            $filterDateRange = ['from' => $dateRange[0]];
 
             if (isset($dateRange[1])) {
                 $plusOneDay = $this->_helper->plusOneDay($dateRange[1], $format = 'Y-m-d');
@@ -282,7 +282,7 @@ class Feed implements FeedInterface
             $customerCollection->getSelect()
                 ->where("($whereCreatedAt) || ($whereUpdatedAt) || $whereSOCreatedAt");
         }
-        $customerCollection->addFieldToFilter('store_id', array('in' => $storeIds));
+        $customerCollection->addFieldToFilter('store_id', ['in' => $storeIds]);
 
         if ($this->_helper->ResultType == 'Count') {
             $customerCount = new stdClass();
@@ -313,8 +313,13 @@ class Feed implements FeedInterface
             ];
 
             if ($item->getDefaultBilling()) {
-                $customerAddress = $this->_addressRepository->getById($item->getDefaultBilling());
-                $street = $customerAddress->getStreet();
+                try {
+                    $customerAddress = $this->_addressRepository->getById($item->getDefaultBilling());
+                    $street = $customerAddress->getStreet();
+                } catch (\Magento\Framework\Exception\NoSuchEntityException $e) {
+                    // Swallow this. The DB is dirty: address specified in customer_entity is not in customer_address_entity
+                    $this->_logger->info("4-Tell: Customer address specified in the customer_entity table is not in the customer_address_entity table for customer id ".$item->getId());
+                }
                 if (!is_null($street)) {
                     $res[] = $street[0];
                     if (isset($street[1]))
@@ -382,13 +387,13 @@ class Feed implements FeedInterface
     {
         switch ($this->_helper->getFeedMethod()) {
             case 'getInventory':
-                $this->resultDataHead = array('ProductID', 'Inventory');
+                $this->resultDataHead = ['ProductID', 'Inventory'];
                 break;
 
             default:
-                $this->resultDataHead = array('SKU', 'ParentSKU', 'InternalID', 'ParentID', 'Name', 'CategoryIDs',
+                $this->resultDataHead = ['SKU', 'ParentSKU', 'InternalID', 'ParentID', 'Name', 'CategoryIDs',
                     'ManufacturerID', 'Price', 'SalePrice', 'PromotionPrice', 'ListPrice', 'Cost', 'Inventory', 'Visible', 'Link', 'ImageLink', 'AltViewImageLinks', 'Ratings',
-                    'ProductType', 'Visibility', 'Active', 'StockAvailability', 'ActivatedDate', 'ModifiedDate');
+                    'ProductType', 'Visibility', 'Active', 'StockAvailability', 'ActivatedDate', 'ModifiedDate'];
                 break;
         }
         // Create file header
@@ -412,7 +417,7 @@ class Feed implements FeedInterface
 
         $collection = $this->_productFactory->create()->getCollection();
         // restrict collection
-        $trueProductIds = array();
+        $trueProductIds = [];
         foreach ($storeIds as $storeId) {
             $restrictCollection = $this->_productFactory->create()->getCollection();
             $restrictCollection->addStoreFilter($storeId);
@@ -462,10 +467,10 @@ class Feed implements FeedInterface
         $dateRange = $this->_helper->getDateRange();
 
         if ($dateRange) {
-            $filterDateRange = array(
+            $filterDateRange = [
                 'from' => $dateRange[0],
                 'date' => true
-            );
+            ];
             if (isset($dateRange[1])) {
                 $plusOneDay = $this->_helper->plusOneDay($dateRange[1], $format = 'Y-m-d');
                 $filterDateRange['to'] = $plusOneDay;
@@ -511,336 +516,368 @@ class Feed implements FeedInterface
                 if ($status == \Magento\Catalog\Model\Product\Attribute\Source\Status::STATUS_DISABLED)
                     $qty = 0;
 
-                $this->resultData[] = array($productId, $qty);
+                $this->resultData[] = [$productId, $qty];
             }
             return $this->resultData;
         }
         foreach ($collection as $product) {
-            $parentIds = [];
-            $parentSkus = [];
-            $productId = $product->getEntityId();
-            $productSku = $product->getSku();
-            $cat = implode(",", $product->getCategoryIds());
-            $manufacturerValue = '';
-            if (!empty($manufacturerCode)) {
-                $manufacturerValue = $product->getData($manufacturerCode);
-                if (is_null($manufacturerValue))
-                    $manufacturerValue = '';
-            }
-
-            $qty = $this->getProductStockQty($product);
-            $productUrl = $product->getUrlModel()->getUrl($product);
-            if (is_null($productUrl))
+            try {
+                $productSku = '';
+                $parentSku = '';
+                $productId = '';
+                $parentId = '';
+                $avg = '';
+                $cat = '';
+                $manufacturerValue = '';
+                $price = '';
+                $specialPrice = '';
+                $listPrice = '';
                 $productUrl = '';
-            $productUrl = $this->_helper->fixLink($productUrl);
+                $image = '';
+                $alternativeImages = [];
+                $visibilityValue = '';
+                $stockAvailability = '';
+                $activatedAt = '';
+                $modifiedAt = '';
+                $parentIds = [];
+                $parentSkus = [];
+                $extraFieldsValue = [];
+                $extraFieldsSwatch = [];
+                $storesCode = [];
+                $productId = $product->getEntityId();
+                $productSku = $product->getSku();
 
-            $images = $this->_helper->createImageCache($product);
-            foreach ($images as $key => $value)
-                $images[$key] = $this->_helper->fixLink($value);
-
-            $thumbnailNumber = $this->_helper->getThumbnailNumber($storeIds[0]);
-            $image = '';
-            foreach ($storeIds as $storeId){
-                if (isset($images[$storeId][$thumbnailNumber])) {
-                    $image = $images[$storeId][$thumbnailNumber];
-                    break;
+                if (empty($productSku))
+                {
+                    $this->_logger->critical("Skipping productId ".$productId." because it has no SKU");
+                    // Append an error row to the resultData product array. 
+                    $this->resultData[] = ["ERROR-".$productId, null, $productId, null, $product->getName()." - ERROR: No SKU"];
+                    continue;                    
                 }
-            }
-            if (!empty($image)){
+                
+                $cat = implode(",", $product->getCategoryIds());
+                $manufacturerValue = '';
+                if (!empty($manufacturerCode)) {
+                    $manufacturerValue = $product->getData($manufacturerCode);
+                    if (is_null($manufacturerValue))
+                        $manufacturerValue = '';
+                }
+
+                $qty = $this->getProductStockQty($product);
+                $productUrl = $product->getUrlModel()->getUrl($product);
+                if (is_null($productUrl))
+                    $productUrl = '';
+                $productUrl = $this->_helper->fixLink($productUrl);
+
+                $images = $this->_helper->createImageCache($product);
+                foreach ($images as $key => $value)
+                    $images[$key] = $this->_helper->fixLink($value);
+
+                $thumbnailNumber = $this->_helper->getThumbnailNumber($storeIds[0]);
                 foreach ($storeIds as $storeId){
                     if (isset($images[$storeId][$thumbnailNumber])) {
-                        unset($images[$storeId][$thumbnailNumber]);
+                        $image = $images[$storeId][$thumbnailNumber];
+                        break;
                     }
                 }
-            }
-
-            $alternativeImages = array();
-            foreach ($storeIds as $storeId){
-                if (isset($images[$storeId]))
-                    $alternativeImages = array_merge($alternativeImages, $images[$storeId]);
-            }
-            if (!empty($alternativeImages)) {
-                $alternativeImages = array_unique($alternativeImages);
-                $alternativeImages = implode(',',$alternativeImages);
-            }
-            else
-                $alternativeImages = '';
-
-            $visibility = $product->getVisibility();
-            $visibilityValue = \Magento\Catalog\Model\Product\Visibility::getOptionText($visibility);
-            if(is_null($visibilityValue))
-                $visibilityValue = '';
-
-            $visible = 1;
-            //Not Visible Individually
-            if ($visibility == 1)
-                $visible = 0;
-            $statusFlag = 1;
-            $status = $product->getStatus();
-            if ($status == \Magento\Catalog\Model\Product\Attribute\Source\Status::STATUS_DISABLED) {
-                $qty = 0;
-                $statusFlag = 0;
-            }
-
-            if ($this->stockRegistry->getProductStockStatus($product->getId())) {
-                $stockAvailability = 'In Stock';
-            } else {
-                $stockAvailability = 'Out of Stock';
-                //$qty = 0;
-            }
-
-            $priceList = $product->getData('msrp');
-            $priceCost = $product->getData('cost');
-            if ($specialPrice = $product->getSpecialPrice()) {
-                $specialPrice = str_replace(",", "", number_format($specialPrice, 2));
-                $now = $this->date->timestamp();
-                if ($specialFromDate = $product->getSpecialFromDate()) {
-                    if ($now < $this->date->timestamp($specialFromDate)) {
-                        $specialPrice = '';
+                if (!empty($image)){
+                    foreach ($storeIds as $storeId){
+                        if (isset($images[$storeId][$thumbnailNumber])) {
+                            unset($images[$storeId][$thumbnailNumber]);
+                        }
                     }
                 }
-                if ($specialToDate = $product->getSpecialToDate()) {
-                    if ($now > $this->date->timestamp($specialToDate)) {
-                        $specialPrice = '';
+
+                $alternativeImages = [];
+                foreach ($storeIds as $storeId){
+                    if (isset($images[$storeId]))
+                        $alternativeImages = array_merge($alternativeImages, $images[$storeId]);
+                }
+                if (!empty($alternativeImages)) {
+                    $alternativeImages = array_unique($alternativeImages);
+                    $alternativeImages = implode(',',$alternativeImages);
+                }
+                else
+                    $alternativeImages = '';
+
+                $visibility = $product->getVisibility();
+                $visibilityValue = \Magento\Catalog\Model\Product\Visibility::getOptionText($visibility);
+                if(is_null($visibilityValue))
+                    $visibilityValue = '';
+
+                $visible = 1;
+                //Not Visible Individually
+                if ($visibility == 1)
+                    $visible = 0;
+                $statusFlag = 1;
+                $status = $product->getStatus();
+                if ($status == \Magento\Catalog\Model\Product\Attribute\Source\Status::STATUS_DISABLED) {
+                    $qty = 0;
+                    $statusFlag = 0;
+                }
+
+                if ($this->stockRegistry->getProductStockStatus($product->getId())) {
+                    $stockAvailability = 'In Stock';
+                } else {
+                    $stockAvailability = 'Out of Stock';
+                    //$qty = 0;
+                }
+
+                $priceList = $product->getData('msrp');
+                $priceCost = $product->getData('cost');
+                if ($specialPrice = $product->getSpecialPrice()) {
+                    $specialPrice = str_replace(",", "", number_format($specialPrice, 2));
+                    $now = $this->date->timestamp();
+                    if ($specialFromDate = $product->getSpecialFromDate()) {
+                        if ($now < $this->date->timestamp($specialFromDate)) {
+                            $specialPrice = '';
+                        }
+                    }
+                    if ($specialToDate = $product->getSpecialToDate()) {
+                        if ($now > $this->date->timestamp($specialToDate)) {
+                            $specialPrice = '';
+                        }
+                    }
+                } else {
+                    $specialPrice = '';
+                }
+
+                if ($product->getTypeId() == "simple" || $product->getTypeId() == "virtual") {
+                    // No Grouped/Bundled Parent IDs in Catalog Feed for Simple Products if simple not visible individually
+                    // 1 Not Visible Individually
+    //                if ($product->getVisibility() == 1) {
+    //                    $parentIdArray = $groupedProductModel->getParentIdsByChild($productId);
+    //                    if (isset($parentIdArray[0])) {
+    //                        $parentIds = array_merge($parentIds, $parentIdArray);
+    //                    }
+    //                    // bundle fixed issue
+    //                    $parentIdArray = $this->_helper->getBundleParentIdsByChildFixed($productId);
+    //                    if (isset($parentIdArray[0])) {
+    //                        $parentIds = array_merge($parentIds, $parentIdArray);
+    //                    }
+    //                }
+                    $parentIdArray = $configurableProductModel->getParentIdsByChild($productId);
+                    if (isset($parentIdArray[0])) {
+                        $parentIds = array_merge($parentIds, $parentIdArray);
                     }
                 }
-            } else {
-                $specialPrice = '';
-            }
-
-            if ($product->getTypeId() == "simple" || $product->getTypeId() == "virtual") {
-                // No Grouped/Bundled Parent IDs in Catalog Feed for Simple Products if simple not visible individually
-                // 1 Not Visible Individually
-//                if ($product->getVisibility() == 1) {
-//                    $parentIdArray = $groupedProductModel->getParentIdsByChild($productId);
-//                    if (isset($parentIdArray[0])) {
-//                        $parentIds = array_merge($parentIds, $parentIdArray);
-//                    }
-//                    // bundle fixed issue
-//                    $parentIdArray = $this->_helper->getBundleParentIdsByChildFixed($productId);
-//                    if (isset($parentIdArray[0])) {
-//                        $parentIds = array_merge($parentIds, $parentIdArray);
-//                    }
-//                }
-                $parentIdArray = $configurableProductModel->getParentIdsByChild($productId);
-                if (isset($parentIdArray[0])) {
-                    $parentIds = array_merge($parentIds, $parentIdArray);
+                if (isset($parentIds[0])) {
+                    $skus = $this->productResource->getProductsSku($parentIds);
+                    foreach ($skus as $sku) {
+                        $parentSkus[] = $sku['sku'];
+                    }
+                    $parentId = implode(',', $parentIds);
+                    $parentSku = implode(',', $parentSkus);
                 }
-            }
-            if (isset($parentIds[0])) {
-                $skus = $this->productResource->getProductsSku($parentIds);
-                foreach ($skus as $sku) {
-                    $parentSkus[] = $sku['sku'];
-                }
-                $parentId = implode(',', $parentIds);
-                $parentSku = implode(',', $parentSkus);
-            }
-            else {
-                $parentId = '';
-                $parentSku = '';
-            }
-
-            if (!$summaryData = $product->getRatingSummary()) {
-                $this->_reviewFactory->create()->getEntitySummary($product, $storeIds[0]);
-            }
-            $summaryData = $product->getRatingSummary();
-            $ratingPercent = $summaryData->getRatingSummary();
-            //5 star
-            if ($ratingPercent)
-                $avg = round($ratingPercent * 5 / 100);
-            else
-                $avg = '';
-
-            $extraFieldsValue = [];
-            $extraFieldsSwatch = [];
-            foreach ($extraFields as $extraField) {
-                $extraFieldsSwatch[] = str_replace('.swatch', '', $extraField);
-            }
-
-            if (!is_null($extraFields)) {
-                /** @var \Magento\Eav\Model\ResourceModel\Entity\Attribute\Option\Collection $attributes */
-                $attributes = $this->attrCollectionFactory->create()
-                    ->addFieldToFilter('attribute_code', array('in' => $extraFieldsSwatch))
-                    ->load();
-
-                $storesDetail = $this->_helper->getStores();
-                $storesCode = [];
-                foreach($storesDetail as $storeDetail){
-                    if (in_array($storeDetail['store_id'],$storeIds))
-                        $storesCode[] = $storeDetail['code'];
+                else {
+                    $parentId = '';
+                    $parentSku = '';
                 }
 
-                foreach ($extraFields as $extraField) {
-                    $extraField = strtolower($extraField);
-                    $found = false;
-                    switch ($extraField) {
-                        case 'maxprice':
-                            $maxPrice = null;
-                            if ($product->getTypeId() == \Magento\Bundle\Model\Product\Type::TYPE_CODE ){
-                                $finalPrice = $product->getPriceInfo()->getPrice('final_price');
-                                $maxPrice = $finalPrice->getMaximalPrice()->getValue();
-                            }
-                            if ($product->getTypeId() == \Magento\GroupedProduct\Model\Product\Type\Grouped::TYPE_CODE){
-                                $maxPrice = $this->_helper->getGroupedMaxPrice($product);
-                            }
-                            $extraFieldsValue[] = (!is_null($maxPrice)) ? number_format($maxPrice, 2, '.', '') : '';
-                            $found = true;
-                            break;
-                        case 'related':
-                            $extraFieldsValue[] = implode(',', $product->getRelatedProductIds());
-                            $found = true;
-                            break;
-                        case 'up-sells':
-                            $extraFieldsValue[] = implode(',', $product->getUpSellProductIds());
-                            $found = true;
-                            break;
-                        case 'cross-sells':
-                            $extraFieldsValue[] = implode(',', $product->getCrossSellProductIds());
-                            $found = true;
-                            break;
-                        case (strpos($extraField, 'image.') !== false):
-                            $imagePos = explode('.', $extraField);
-                            $extraFieldsValue[] = $this->_helper->getImageUrlByPos($product, $storeIds[0], $imagePos[1]);
-                            $found = true;
-                            break;
+                if (!$summaryData = $product->getRatingSummary()) {
+                    $this->_reviewFactory->create()->getEntitySummary($product, $storeIds[0]);
+                }
+                $summaryData = $product->getRatingSummary();
+                $ratingPercent = $summaryData->getRatingSummary();
+                //5 star
+                if ($ratingPercent)
+                    $avg = round($ratingPercent * 5 / 100);
 
-                        case (in_array(@array_shift(explode('.', $extraField)),$storesCode)):
-                            $viewScopeParam = explode('.', $extraField);
-                            foreach($storesDetail as $storeDetail){
-                                if ($storeDetail['code'] == $viewScopeParam[0]){
-                                    $found = true;
-                                    if ($viewScopeParam[1] == 'url_key_4tell') {
-                                        $value = $this->_helper->getProductUrlInStore($productId, $storeDetail['store_id']);
-                                        $value = $this->_helper->fixLink($value);
-                                    }
-                                    else
-                                        $value = $this->productResource->getAttributeRawValue($product->getEntityId(), $viewScopeParam[1], $storeDetail['store_id']);
-                                    $extraFieldsValue[] = ($value) ? $value : "";
-                                    break;
+                if (!is_null($extraFields)) {
+                    
+                    foreach ($extraFields as $extraField) {
+                        $extraFieldsSwatch[] = str_replace('.swatch', '', $extraField);
+                    }
+
+                    /** @var \Magento\Eav\Model\ResourceModel\Entity\Attribute\Option\Collection $attributes */
+                    $attributes = $this->attrCollectionFactory->create()
+                        ->addFieldToFilter('attribute_code', ['in' => $extraFieldsSwatch])
+                        ->load();
+
+                    $storesDetail = $this->_helper->getStores();
+                    foreach($storesDetail as $storeDetail) {
+                        if (in_array($storeDetail['store_id'],$storeIds))
+                            $storesCode[] = $storeDetail['code'];
+                    }
+
+                    foreach ($extraFields as $extraField) {
+                        $extraField = strtolower($extraField);
+                        $found = false;
+                        $extraFieldExploded = explode('.', $extraField);
+                        switch ($extraField) {
+                            case 'maxprice':
+                                $maxPrice = null;
+                                if ($product->getTypeId() == Type::TYPE_CODE ){
+                                    $finalPrice = $product->getPriceInfo()->getPrice('final_price');
+                                    $maxPrice = $finalPrice->getMaximalPrice()->getValue();
                                 }
-                            }
-
-                        default:
-                            foreach ($attributes as $attribute) {
-                                $swatchField = $attribute->getAttributeCode() . '.swatch';
-                                if ($swatchField == $extraField) {
-                                    // check for swatch
-                                    $optionIdvalue = $product->getData($attribute->getAttributeCode());
-                                    $swatchHelper = $objectManager->get("Magento\Swatches\Helper\Media");
-                                    $swatchCollection = $objectManager->create('Magento\Swatches\Model\ResourceModel\Swatch\Collection');
-                                    $swatchCollection->addFieldtoFilter('option_id', $optionIdvalue);
-                                    $resultItem = $swatchCollection->getFirstItem();
-                                    if ($resultItem['type'] == \Magento\Swatches\Model\Swatch::SWATCH_TYPE_VISUAL_IMAGE && !empty($resultItem['value'])) {
-                                        $swatchImage = $swatchHelper->getSwatchAttributeImage(
-                                            \Magento\Swatches\Model\Swatch::SWATCH_IMAGE_NAME,
-                                            $resultItem['value']
-                                        );
-                                    } else
-                                        $swatchImage = $resultItem['value'];
-
-                                    if (!is_null($swatchImage))
-                                        $extraFieldsValue[] = $swatchImage;
-                                    else
-                                        $extraFieldsValue[] = '';
-
-                                    $found = true;
-                                    break;
+                                if ($product->getTypeId() == Grouped::TYPE_CODE){
+                                    $maxPrice = $this->_helper->getGroupedMaxPrice($product);
                                 }
-                                if ($attribute->getAttributeCode() == $extraField) {
-                                    if ($attribute->getFrontendInput() == 'multiselect' || $attribute->getFrontendInput() == 'select') {
-                                        $getExtraFieldValue = [];
-                                        $extraOptionIds = $product->getData($extraField);
-                                        $extraOptionIds = explode(',', $extraOptionIds);
-                                        $extraOptions = $this->attrOptionCollectionFactory->create()
-                                            ->setAttributeFilter($attribute->getAttributeId())
-                                            ->setStoreFilter($storeIds[0])
-                                            ->setPositionOrder('asc', true)->load();
-                                        $extraOptions = $extraOptions->toArray();
-                                        if ($extraOptions['totalRecords']) {
-                                            foreach ($extraOptions['items'] as $extraOption) {
-                                                if (in_array($extraOption['option_id'], $extraOptionIds)) {
-                                                    $getExtraFieldValue[] = $extraOption['value'];
-                                                }
-                                            }
+                                $extraFieldsValue[] = (!is_null($maxPrice)) ? number_format($maxPrice, 2, '.', '') : '';
+                                $found = true;
+                                break;
+                            case 'related':
+                                $extraFieldsValue[] = implode(',', $product->getRelatedProductIds());
+                                $found = true;
+                                break;
+                            case 'up-sells':
+                                $extraFieldsValue[] = implode(',', $product->getUpSellProductIds());
+                                $found = true;
+                                break;
+                            case 'cross-sells':
+                                $extraFieldsValue[] = implode(',', $product->getCrossSellProductIds());
+                                $found = true;
+                                break;
+                            case (strpos($extraField, 'image.') !== false):
+                                $imagePos = $extraFieldExploded;
+                                $extraFieldsValue[] = $this->_helper->getImageUrlByPos($product, $storeIds[0], $imagePos[1]);
+                                $found = true;
+                                break;
+
+                            case (in_array(array_shift($extraFieldExploded), $storesCode)):
+                                $viewScopeParam = $extraFieldExploded;
+                                foreach($storesDetail as $storeDetail){
+                                    if ($storeDetail['code'] == $viewScopeParam[0]){
+                                        $found = true;
+                                        if ($viewScopeParam[1] == 'url_key_4tell') {
+                                            $value = $this->_helper->getProductUrlInStore($productId, $storeDetail['store_id']);
+                                            $value = $this->_helper->fixLink($value);
                                         }
-                                        if (!empty($getExtraFieldValue)) {
-                                            $extraFieldsValue[] = implode(',', $getExtraFieldValue);
+                                        else
+                                            $value = $this->productResource->getAttributeRawValue($product->getEntityId(), $viewScopeParam[1], $storeDetail['store_id']);
+                                            $extraFieldsValue[] = ($value) ? $value : "";
+                                        break;
+                                    }
+                                }
+
+                            default:
+                                foreach ($attributes as $attribute) {
+                                    $swatchField = $attribute->getAttributeCode() . '.swatch';
+                                    if ($swatchField == $extraField) {
+                                        // check for swatch
+                                        $optionIdvalue = $product->getData($attribute->getAttributeCode());
+                                        $swatchHelper = $objectManager->get("Magento\Swatches\Helper\Media");
+                                        $swatchCollection = $objectManager->create('Magento\Swatches\Model\ResourceModel\Swatch\Collection');
+                                        $swatchCollection->addFieldtoFilter('option_id', $optionIdvalue);
+                                        $resultItem = $swatchCollection->getFirstItem();
+                                        if ($resultItem['type'] == \Magento\Swatches\Model\Swatch::SWATCH_TYPE_VISUAL_IMAGE && !empty($resultItem['value'])) {
+                                            $swatchImage = $swatchHelper->getSwatchAttributeImage(
+                                                \Magento\Swatches\Model\Swatch::SWATCH_IMAGE_NAME,
+                                                $resultItem['value']
+                                            );
                                         } else
-                                            $extraFieldsValue[] = "";
-                                    } else {
-                                        if (!is_null($product->getData($extraField)))
-                                            $extraFieldsValue[] = $product->getData($extraField);
+                                            $swatchImage = $resultItem['value'];
+
+                                        if (!is_null($swatchImage))
+                                            $extraFieldsValue[] = $swatchImage;
                                         else
                                             $extraFieldsValue[] = '';
+
+                                        $found = true;
+                                        break;
                                     }
-                                    $found = true;
-                                    break;
+                                    if ($attribute->getAttributeCode() == $extraField) {
+                                        if ($attribute->getFrontendInput() == 'multiselect' || $attribute->getFrontendInput() == 'select') {
+                                            $getExtraFieldValue = [];
+                                            $extraOptionIds = $product->getData($extraField);
+                                            $extraOptionIds = explode(',', $extraOptionIds);
+                                            $extraOptions = $this->attrOptionCollectionFactory->create()
+                                                ->setAttributeFilter($attribute->getAttributeId())
+                                                ->setStoreFilter($storeIds[0])
+                                                ->setPositionOrder('asc', true)->load();
+                                            $extraOptions = $extraOptions->toArray();
+                                            if ($extraOptions['totalRecords']) {
+                                                foreach ($extraOptions['items'] as $extraOption) {
+                                                    if (in_array($extraOption['option_id'], $extraOptionIds)) {
+                                                        $getExtraFieldValue[] = $extraOption['value'];
+                                                    }
+                                                }
+                                            }
+                                            if (!empty($getExtraFieldValue)) {
+                                                $extraFieldsValue[] = implode(',', $getExtraFieldValue);
+                                            } else
+                                                $extraFieldsValue[] = "";
+                                        } else {
+                                            if (!is_null($product->getData($extraField)))
+                                                $extraFieldsValue[] = $product->getData($extraField);
+                                            else
+                                                $extraFieldsValue[] = '';
+                                        }
+                                        $found = true;
+                                        break;
+                                    }
                                 }
-                            }
+                        }
+                        if (!$found)
+                            $extraFieldsValue[] = "";
                     }
-                    if (!$found)
-                        $extraFieldsValue[] = "";
                 }
-            }
 
-            $price = $product->getPrice();
+                $price = $product->getPrice();
 
-            if ($product->getTypeId() == \Magento\Bundle\Model\Product\Type::TYPE_CODE ){
-                $finalPrice = $product->getPriceInfo()->getPrice('final_price');
-                $price = $finalPrice->getMinimalPrice()->getValue();
-//                $_maximalPrice = $bundleObj->getMaximalPrice()->getValue();
-            }
-            if ($product->getTypeId() == \Magento\GroupedProduct\Model\Product\Type\Grouped::TYPE_CODE){
-                $finalPrice = $product->getPriceInfo()->getPrice('final_price');
-                $price = $finalPrice->getMinimalPrice()->getValue();
-                //$maxPrice = $this->_helper->getGroupedMaxPrice($product);
-            }
+                if ($product->getTypeId() == Type::TYPE_CODE ){
+                    $finalPrice = $product->getPriceInfo()->getPrice('final_price');
+                    $price = $finalPrice->getMinimalPrice()->getValue();
+    //                $_maximalPrice = $bundleObj->getMaximalPrice()->getValue();
+                }
+                if ($product->getTypeId() == Grouped::TYPE_CODE){
+                    $finalPrice = $product->getPriceInfo()->getPrice('final_price');
+                    $price = $finalPrice->getMinimalPrice()->getValue();
+                    //$maxPrice = $this->_helper->getGroupedMaxPrice($product);
+                }
 
 
-            $zones = $this->_helper->getTimezone($storeIds);
-            $zone = $zones[$storeIds[0]];
-            $activatedAt = new \DateTime($product->getData('created_at'), new \DateTimeZone($zone));
-            $modifiedAt = new \DateTime($product->getData('updated_at'), new \DateTimeZone($zone));
-            //fix issue for v.2.1.0
-            try {
-                $listPrice = number_format($product->getFinalPrice(), 2, '.', '');
+                $zones = $this->_helper->getTimezone($storeIds);
+                $zone = $zones[$storeIds[0]];
+                $activatedAt = new \DateTime($product->getData('created_at'), new \DateTimeZone($zone));
+                $modifiedAt = new \DateTime($product->getData('updated_at'), new \DateTimeZone($zone));
+                //fix issue for v.2.1.0
+                try {
+                    $listPrice = number_format($product->getFinalPrice(), 2, '.', '');
+                } catch (\Exception $e) {
+                    $listPrice = '';
+                }
+
+                $resultData = [
+                    $productSku,
+                    $parentSku,
+                    $productId,
+                    $parentId,
+                    $product->getName(),
+                    $cat,
+                    $manufacturerValue,
+                    number_format($price, 2, '.', ''),
+                    $specialPrice,
+                    $listPrice,
+                    number_format($priceList, 2, '.', ''),
+                    number_format($priceCost, 2, '.', ''),
+                    number_format($qty, 0),
+                    (string)$visible,
+                    $productUrl,
+                    $image,
+                    $alternativeImages,
+                    (string)$avg,
+                    $product->getTypeId(),
+                    $visibilityValue,
+                    (string)$statusFlag,
+                    $stockAvailability,
+                    $activatedAt->format('Y-m-d H:i:sP'),
+                    $modifiedAt->format('Y-m-d H:i:sP')
+                ];
+
+                foreach ($extraFieldsValue as $extraFieldValue) {
+                    $resultData[] = $extraFieldValue;
+                }
+
+                $this->resultData[] = $resultData;
             } catch (\Exception $e) {
-                $listPrice = '';
+                $this->_logger->critical("Exception while parsing productId ".$productId);
+                $this->_logger->critical($e);
+                // Append an error row to the resultData product array. 
+                $this->resultData[] = ["ERROR-".$productId, null, $productId, null, $product->getName()." - ERROR: ".$e];
+                continue;                    
             }
-
-            $resultData = array(
-                $productSku,
-                $parentSku,
-                $productId,
-                $parentId,
-                $product->getName(),
-                $cat,
-                $manufacturerValue,
-                number_format($price, 2, '.', ''),
-                $specialPrice,
-                $listPrice,
-                number_format($priceList, 2, '.', ''),
-                number_format($priceCost, 2, '.', ''),
-                number_format($qty, 0),
-                (string)$visible,
-                $productUrl,
-                $image,
-                $alternativeImages,
-                (string)$avg,
-                $product->getTypeId(),
-                $visibilityValue,
-                (string)$statusFlag,
-                $stockAvailability,
-                $activatedAt->format('Y-m-d H:i:sP'),
-                $modifiedAt->format('Y-m-d H:i:sP')
-            );
-
-
-            foreach ($extraFieldsValue as $extraFieldValue) {
-                $resultData[] = $extraFieldValue;
-            }
-
-            $this->resultData[] = $resultData;
         }
 
         return $this->resultData;
@@ -877,7 +914,7 @@ class Feed implements FeedInterface
     function getManufacturerNames()
     {
         $result = [];
-        $result[] = array('ID', 'Name');
+        $result[] = ['ID', 'Name'];
         $clientAlias = $this->_helper->ClientAlias;
         $storeIds = $this->_helper->map($clientAlias);
         if (empty($storeIds))
@@ -919,9 +956,9 @@ class Feed implements FeedInterface
             if ($options['totalRecords']) {
                 foreach ($options['items'] as $option) {
                     if (!empty($option['store_default_value']))
-                        $result[] = array($option['option_id'], $option['store_default_value']);
+                        $result[] = [$option['option_id'], $option['store_default_value']];
                     else
-                        $result[] = array($option['option_id'], $option['value']);
+                        $result[] = [$option['option_id'], $option['value']];
                 }
             }
         }
@@ -994,9 +1031,10 @@ class Feed implements FeedInterface
             foreach ($extraFields as $extraField) {
                 $extraField = strtolower($extraField);
                 $found = false;
+                $extraFieldExploded = explode('.', $extraField);
                 switch ($extraField) {
-                    case (in_array(@array_shift(explode('.', $extraField)), $storesCode)):
-                        $viewScopeParam = explode('.', $extraField);
+                    case (in_array(array_shift($extraFieldExploded), $storesCode)):
+                        $viewScopeParam = $extraFieldExploded;
                         foreach ($storesDetail as $storeDetail) {
                             if ($storeDetail['code'] == $viewScopeParam[0]) {
                                 $found = true;
@@ -1038,7 +1076,7 @@ class Feed implements FeedInterface
     {
         $result = [];
         //Head
-        $result[] = array('OrderID', 'SKU', 'CustomerID', 'Quantity', 'ItemPrice', 'FullPrice', 'Date', 'ModifiedDate');
+        $result[] = ['OrderID', 'SKU', 'CustomerID', 'Quantity', 'ItemPrice', 'FullPrice', 'Date', 'ModifiedDate'];
         $clientAlias = $this->_helper->ClientAlias;
         $storeIds = $this->_helper->map($clientAlias);
         if (empty($storeIds))
@@ -1050,16 +1088,16 @@ class Feed implements FeedInterface
 
         /* TODO: ??? 'product_type' -> 'type_id' */
         //It should send the product ID for the purchased product, and not the Configurable parent ID.
-        $collection->addFieldToFilter('product_type', array('neq' => 'configurable'));
+        $collection->addFieldToFilter('product_type', ['neq' => 'configurable']);
 
         //DateRange
         $dateRange = $this->_helper->getDateRange();
 
         if ($dateRange) {
-            $filterDateRange = array(
+            $filterDateRange = [
                 'from' => $dateRange[0],
                 'date' => true
-            );
+            ];
             if (isset($dateRange[1])) {
                 $plusOneDay = $this->_helper->plusOneDay($dateRange[1], $format = 'Y-m-d');
                 $filterDateRange['to'] = $plusOneDay;
@@ -1074,12 +1112,12 @@ class Feed implements FeedInterface
 //            $collection->getSelect()->joinLeft(array('so' => $sales_order_table), 'main_table.order_id = so.entity_id', array('so.status'));
 //            $collection->getSelect()->where("qty_refunded > 0 || status='canceled'");
 //        }
-        $orderItemBundle = array();
+        $orderItemBundle = [];
         $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
 
-        $orderItemGrouped = array();
+        $orderItemGrouped = [];
         // Loop through the collection data
-        $groupedPrice = array();
+        $groupedPrice = [];
         foreach ($collection as $item) {
             $productType = $item->getData('product_type');
             if (($productType == 'grouped') && $this->_helper->getConfig(\FourTell\Recommend\Helper\Data::XML_PATH_ADVANCED_GROUPPROD, is_null($storeIds) ? $storeIds : $storeIds[0])) {
@@ -1178,7 +1216,7 @@ class Feed implements FeedInterface
                 }
                 $price = str_replace(",", "", number_format($price, 2));
                 $originPrice = str_replace(",", "", number_format($originPrice, 2));
-                $result[] = array($order->getData('increment_id'), $row['sku'], $customerId, (string)$qty, $price, $originPrice, $createdAt, $updatedAt);
+                $result[] = [$order->getData('increment_id'), $row['sku'], $customerId, (string)$qty, $price, $originPrice, $createdAt, $updatedAt];
                 //$row['qty'], $row['qty_canceled'], $price, $dt->format('Y-m-d H:i:sP'));
             }
         }

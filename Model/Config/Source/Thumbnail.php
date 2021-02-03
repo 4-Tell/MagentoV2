@@ -7,7 +7,12 @@
 
 namespace FourTell\Recommend\Model\Config\Source;
 
-class Thumbnail implements \Magento\Framework\Option\ArrayInterface
+use Magento\Eav\Model\Entity\Attribute;
+use Magento\Eav\Model\Entity\Attribute\Set;
+use Magento\Framework\App\ObjectManager;
+use Magento\Framework\Option\ArrayInterface;
+
+class Thumbnail implements ArrayInterface
 {
     /**
      * @var Attribute
@@ -20,42 +25,45 @@ class Thumbnail implements \Magento\Framework\Option\ArrayInterface
     public function toOptionArray()
     {
         $positions = [
-            array('value' => '1', 'label' => __('1')),
-            array('value' => '2', 'label' => __('2')),
-            array('value' => '3', 'label' => __('3')),
-            array('value' => '4', 'label' => __('4')),
-            array('value' => '5', 'label' => __('5')),
-            array('value' => '6', 'label' => __('6')),
-            array('value' => '7', 'label' => __('7')),
-            array('value' => '8', 'label' => __('8')),
-            array('value' => '9', 'label' => __('9')),
-            array('value' => '10', 'label' => __('10')),
-            array('value' => '11', 'label' => __('11')),
-            array('value' => '12', 'label' => __('12')),
-            array('value' => '13', 'label' => __('13')),
-            array('value' => '14', 'label' => __('14')),
-            array('value' => '15', 'label' => __('15')),
-            array('value' => '16', 'label' => __('16')),
-            array('value' => '17', 'label' => __('17')),
-            array('value' => '18', 'label' => __('18')),
-            array('value' => '19', 'label' => __('19')),
-            array('value' => '20', 'label' => __('20'))
+            ['value' => '1', 'label' => __('1')],
+            ['value' => '2', 'label' => __('2')],
+            ['value' => '3', 'label' => __('3')],
+            ['value' => '4', 'label' => __('4')],
+            ['value' => '5', 'label' => __('5')],
+            ['value' => '6', 'label' => __('6')],
+            ['value' => '7', 'label' => __('7')],
+            ['value' => '8', 'label' => __('8')],
+            ['value' => '9', 'label' => __('9')],
+            ['value' => '10', 'label' => __('10')],
+            ['value' => '11', 'label' => __('11')],
+            ['value' => '12', 'label' => __('12')],
+            ['value' => '13', 'label' => __('13')],
+            ['value' => '14', 'label' => __('14')],
+            ['value' => '15', 'label' => __('15')],
+            ['value' => '16', 'label' => __('16')],
+            ['value' => '17', 'label' => __('17')],
+            ['value' => '18', 'label' => __('18')],
+            ['value' => '19', 'label' => __('19')],
+            ['value' => '20', 'label' => __('20')]
         ];
         $sort = ['image', 'small_image', 'thumbnail'];
-        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+        $objectManager = ObjectManager::getInstance();
         $attributes = $objectManager->create('\Magento\Eav\Model\ResourceModel\Entity\Attribute\Collection');
-        $attributes->addFieldToFilter(\Magento\Eav\Model\Entity\Attribute\Set::KEY_ENTITY_TYPE_ID, 4);
+        $attributes->addFieldToFilter(Set::KEY_ENTITY_TYPE_ID, 4);
         $attributes->addFieldToFilter('attribute_code', array('in' => $this->getMediaAttributeCodes()))->load();
         $mediaAttributes = array();
         foreach($attributes->getItems() as $attribute){
             if (!in_array($attribute->getAttributeCode(),$sort))
-                array_unshift($positions, array('value' => $attribute->getAttributeCode(), 'label' => $attribute->getFrontendLabel()));
+                array_unshift(
+                    $positions,
+                    ['value' => $attribute->getAttributeCode(), 'label' => $attribute->getFrontendLabel()]
+                );
             else
                 $mediaAttributes[$attribute->getAttributeCode()] = $attribute->getFrontendLabel();
         }
         foreach ($sort as $key){
             if (isset($mediaAttributes[$key]))
-                array_unshift($positions, array('value' => $key, 'label' => $mediaAttributes[$key]));
+                array_unshift($positions, ['value' => $key, 'label' => $mediaAttributes[$key]]);
         }
         return $positions;
     }
@@ -74,8 +82,8 @@ class Thumbnail implements \Magento\Framework\Option\ArrayInterface
     private function getAttributeHelper()
     {
         if (null === $this->attributeHelper) {
-            $this->attributeHelper = \Magento\Framework\App\ObjectManager::getInstance()
-                ->get('Magento\Eav\Model\Entity\Attribute');
+            $this->attributeHelper = ObjectManager::getInstance()
+                ->get(Attribute::class);
         }
         return $this->attributeHelper;
     }

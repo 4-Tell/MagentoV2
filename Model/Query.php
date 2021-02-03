@@ -54,11 +54,11 @@ class Query //extends \Magento\Framework\Model\AbstractModel
         $select = $connection->select()
             ->from(array('t' => $tableName))
             ->where('t.path=?', 'recommend/general_settings/client_id');
-        if (!is_null($scope))
+        if ($scope !== null)
             $select->where('scope= ?', 'stores');
         $select->group('t.value');
-        $data = $connection->fetchAll($select);
-        return $data;
+
+        return $connection->fetchAll($select);
     }
 
     public function getConfigForClientAliases($clientAlias)

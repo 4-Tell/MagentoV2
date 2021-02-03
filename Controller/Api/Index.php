@@ -91,10 +91,10 @@ class Index extends Action
             $resultJson->setHttpResponseCode(401);
 
         } catch (\Exception $e) {
-            $this->_logger->critical($e);
+            $this->_logger->critical("4-Tell: ".$e);
             $response = [
                 'success' => false,
-                'message' => __('Oops!')
+                'message' => $e->getMessage()." Stack Trace: ".$e->getTraceAsString()
             ];
             $resultJson->setHttpResponseCode(500);
         }
