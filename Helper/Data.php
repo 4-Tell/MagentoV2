@@ -1231,6 +1231,6 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
      */
     public function number_format_defualt_to_zero($num, $decimals, $decimal_seperator, $thousand_seperator)
     {
-        return number_format($num ?? 0, $decimals, $decimal_seperator, $thousand_seperator);
+        return number_format(isset($num) ? $num : 0, $decimals, $decimal_seperator, $thousand_seperator);
     }
 }
