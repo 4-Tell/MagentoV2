@@ -1225,12 +1225,12 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
      *
      * @param float $num
      * @param int $decimals
-     * @param ?string $decimal_seperator
-     * @param ?string $thousand_seperator
+     * @param string $decimal_separator
+     * @param string $thousand_separator
      * @return string
      */
-    public function number_format_defualt_to_zero($num, $decimals, $decimal_seperator, $thousand_seperator)
+    public static function number_format_default_to_zero($num, $decimals, $decimal_separator = ".", $thousand_separator = "")
     {
-        return number_format(isset($num) ? $num : 0, $decimals, $decimal_seperator, $thousand_seperator);
+        return number_format(isset($num) ? $num : 0, $decimals, $decimal_separator, $thousand_separator);
     }
 }
