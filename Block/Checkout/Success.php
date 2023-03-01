@@ -7,6 +7,8 @@
  */
 namespace FourTell\Recommend\Block\Checkout;
 
+use FourTell\Recommend\Helper\Data as FourTellHelper;
+
 class Success extends \Magento\Framework\View\Element\Template
 {
     /**
@@ -99,7 +101,7 @@ class Success extends \Magento\Framework\View\Element\Template
 
         foreach ($items as $item) {
             if ($item->getData('product_type') == 'configurable') {
-                $orderItemConfigurable[$item->getData('item_id')] = str_replace(",", "", number_format($item->getData('price'), 2));
+                $orderItemConfigurable[$item->getData('item_id')] = str_replace(",", "", FourTellHelper::number_format_default_to_zero($item->getData('price'), 2));
             }
             if ($item->getData('product_type') == 'grouped') {
                 if ($configGroupprod) {
@@ -145,14 +147,14 @@ class Success extends \Magento\Framework\View\Element\Template
                     $price = $orderItemConfigurable[$item->getData('parent_item_id')];
                 }
                 elseif (isset($orderItemGrouped[$detail['product_id']])){
-                    $price = str_replace(",", "", number_format($orderItemGrouped[$detail['product_id']], 2));
+                    $price = str_replace(",", "", FourTellHelper::number_format_default_to_zero($orderItemGrouped[$detail['product_id']], 2));
                     if($groupedPrice[$detail['product_id']]['count'])
                         $detail['qty'] = round($groupedPrice[$detail['product_id']]['groupedQty']/$groupedPrice[$detail['product_id']]['count']);
                     else
                         $detail['qty'] = 0;
                 }
                 else {
-                    $price = str_replace(",", "", number_format($item->getData('price'), 2));
+                    $price = str_replace(",", "", FourTellHelper::number_format_default_to_zero($item->getData('price'), 2));
                 }
                 $details[] = array($detail['sku'], $detail['qty'], $price);
             }

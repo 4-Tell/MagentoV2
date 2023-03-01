@@ -507,7 +507,7 @@ class Feed implements FeedInterface
                 $productId = $product->getEntityId();
                 $manageStock = $this->stockRegistry->getStockItem($product->getId())->getManageStock();
                 if ($manageStock)
-                    $qty = number_format($this->getProductStockQty($product), 0);
+                    $qty = FourTellHelper::number_format_default_to_zero($this->getProductStockQty($product), 0);
                 else
                     $qty = '';
 
@@ -626,7 +626,7 @@ class Feed implements FeedInterface
                 $priceList = $product->getData('msrp');
                 $priceCost = $product->getData('cost');
                 if ($specialPrice = $product->getSpecialPrice()) {
-                    $specialPrice = str_replace(",", "", number_format($specialPrice, 2));
+                    $specialPrice = str_replace(",", "", FourTellHelper::number_format_default_to_zero($specialPrice, 2));
                     $now = $this->date->timestamp();
                     if ($specialFromDate = $product->getSpecialFromDate()) {
                         if ($now < $this->date->timestamp($specialFromDate)) {
@@ -714,7 +714,7 @@ class Feed implements FeedInterface
                                 if ($product->getTypeId() == Grouped::TYPE_CODE){
                                     $maxPrice = $this->_helper->getGroupedMaxPrice($product);
                                 }
-                                $extraFieldsValue[] = (!is_null($maxPrice)) ? number_format($maxPrice, 2, '.', '') : '';
+                                $extraFieldsValue[] = (!is_null($maxPrice)) ? FourTellHelper::number_format_default_to_zero($maxPrice, 2, '.', '') : '';
                                 $found = true;
                                 break;
                             case 'related':
@@ -834,7 +834,7 @@ class Feed implements FeedInterface
                 $modifiedAt = new \DateTime($product->getData('updated_at'), new \DateTimeZone($zone));
                 //fix issue for v.2.1.0
                 try {
-                    $listPrice = number_format($product->getFinalPrice(), 2, '.', '');
+                    $listPrice = FourTellHelper::number_format_default_to_zero($product->getFinalPrice(), 2, '.', '');
                 } catch (\Exception $e) {
                     $listPrice = '';
                 }
@@ -847,12 +847,12 @@ class Feed implements FeedInterface
                     $product->getName(),
                     $cat,
                     $manufacturerValue,
-                    number_format($price, 2, '.', ''),
+                    FourTellHelper::number_format_default_to_zero($price, 2, '.', ''),
                     $specialPrice,
                     $listPrice,
-                    number_format($priceList, 2, '.', ''),
-                    number_format($priceCost, 2, '.', ''),
-                    number_format($qty, 0),
+                    FourTellHelper::number_format_default_to_zero($priceList, 2, '.', ''),
+                    FourTellHelper::number_format_default_to_zero($priceCost, 2, '.', ''),
+                    FourTellHelper::number_format_default_to_zero($qty, 0),
                     (string)$visible,
                     $productUrl,
                     $image,
@@ -1214,8 +1214,8 @@ class Feed implements FeedInterface
                                 $qty = 0;
                     }
                 }
-                $price = str_replace(",", "", number_format($price, 2));
-                $originPrice = str_replace(",", "", number_format($originPrice, 2));
+                $price = str_replace(",", "", FourTellHelper::number_format_default_to_zero($price, 2));
+                $originPrice = str_replace(",", "", FourTellHelper::number_format_default_to_zero($originPrice, 2));
                 $result[] = [$order->getData('increment_id'), $row['sku'], $customerId, (string)$qty, $price, $originPrice, $createdAt, $updatedAt];
                 //$row['qty'], $row['qty_canceled'], $price, $dt->format('Y-m-d H:i:sP'));
             }

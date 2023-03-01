@@ -1218,4 +1218,19 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
         if(!isset($url)) return '';
         return preg_replace('#^http(s)?:#', '', $url);
     }
+
+
+    /**
+     * Fixes null values being passed to number_format, defaulting to 0 instead.
+     *
+     * @param float $num
+     * @param int $decimals
+     * @param string $decimal_separator
+     * @param string $thousand_separator
+     * @return string
+     */
+    public static function number_format_default_to_zero($num, $decimals, $decimal_separator = ".", $thousand_separator = "")
+    {
+        return number_format(isset($num) ? $num : 0, $decimals, $decimal_separator, $thousand_separator);
+    }
 }
